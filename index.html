@@ -1,15 +1,12 @@
-<!-- index.html -->
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Neon Dash Arena — Overdrive (Two-file)</title>
+<title>Neon Dash Arena — Overdrive (Fixed)</title>
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 <style>
-  :root{
-    --bg:#050814; --panel:#0b1020; --accent:#4ee1a1; --accent2:#7ad7ff; --danger:#ff6b6b; --muted:#9aa7bf;
-  }
+  :root{--bg:#050814;--panel:#0b1020;--accent:#4ee1a1;--accent2:#7ad7ff;--muted:#9aa7bf;}
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%;background:radial-gradient(circle at top,#101632,#050814);color:#e6eef8;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif}
   #wrap{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px}
@@ -27,25 +24,16 @@
   #waveInfo{position:absolute;right:10px;top:10px;font-size:13px;color:var(--muted)}
   #msg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:22px;color:#fff;text-shadow:0 2px 6px #000;pointer-events:none}
   footer{margin-top:8px;font-size:12px;color:var(--muted)}
-  #upgradeOverlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:20}
+  #upgradeOverlay,#shopOverlay,#skillOverlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:20}
   .card{background:#050814;border-radius:12px;padding:18px 20px;max-width:420px;width:90%;box-shadow:0 10px 30px rgba(0,0,0,.8)}
-  .card h2{margin-bottom:8px;font-size:18px;color:var(--accent)}
-  .card p{font-size:13px;color:var(--muted);margin-bottom:10px}
   .upgrade-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
   .upgrade{border-radius:8px;border:1px solid rgba(255,255,255,.08);padding:8px 10px;cursor:pointer;background:rgba(255,255,255,.02)}
-  .upgrade:hover{border-color:var(--accent);background:rgba(78,225,161,.08)}
-  .upgrade-title{font-size:14px;color:#fff;font-weight:600}
-  .upgrade-desc{font-size:12px;color:var(--muted)}
   .touch{display:none;position:fixed;bottom:10px;left:0;right:0;justify-content:space-between;padding:0 16px;pointer-events:none}
   .pad{pointer-events:auto;display:flex;gap:6px;background:rgba(0,0,0,.35);padding:8px;border-radius:10px}
   .pad button{border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;padding:8px 10px;font-size:14px}
   @media(max-width:720px){ header{flex-direction:column;align-items:flex-start} .touch{display:flex} }
-  /* small helper styles for shop and skill tree */
-  #shopOverlay,#skillOverlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:21}
-  .panel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-  .shop-item{background:linear-gradient(180deg,#071827,#05101a);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,.04)}
-  .skill-tree{display:flex;gap:8px;flex-wrap:wrap}
-  .skill{padding:8px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);cursor:pointer}
+  /* debug overlay */
+  #debugBox{position:fixed;left:12px;bottom:12px;background:rgba(0,0,0,0.6);color:#fff;padding:8px;border-radius:8px;font-size:12px;max-width:320px;z-index:60}
 </style>
 </head>
 <body>
@@ -88,8 +76,8 @@
 
 <!-- Overlays -->
 <div id="upgradeOverlay"><div class="card"><h2>Choose an upgrade</h2><p>Wave cleared! Pick one upgrade.</p><div class="upgrade-list" id="upgradeList"></div></div></div>
-<div id="shopOverlay"><div class="card"><h2>Shop</h2><p>Spend credits to buy permanent upgrades.</p><div class="panel-grid" id="shopList"></div><p style="margin-top:10px"><button id="closeShop" class="btn primary">Close</button></p></div></div>
-<div id="skillOverlay"><div class="card"><h2>Skill Tree</h2><p>Unlock permanent skills.</p><div class="skill-tree" id="skillList"></div><p style="margin-top:10px"><button id="closeSkills" class="btn primary">Close</button></p></div></div>
+<div id="shopOverlay"><div class="card"><h2>Shop</h2><p>Spend credits to buy permanent upgrades.</p><div id="shopList" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px"></div><p style="margin-top:10px"><button id="closeShop" class="btn primary">Close</button></p></div></div>
+<div id="skillOverlay"><div class="card"><h2>Skill Tree</h2><p>Unlock permanent skills.</p><div id="skillList" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div><p style="margin-top:10px"><button id="closeSkills" class="btn primary">Close</button></p></div></div>
 
 <div class="touch">
   <div class="pad">
@@ -104,6 +92,10 @@
   </div>
 </div>
 
-<script src="game.js"></script>
+<!-- visible debug box for runtime errors -->
+<div id="debugBox" style="display:none"></div>
+
+<!-- load game.js after DOM parsing (defer) -->
+<script src="game.js" defer></script>
 </body>
 </html>
