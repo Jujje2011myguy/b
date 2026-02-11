@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Neon Dash Arena — Shop + Secret Menu</title>
+<title>Neon Dash Arena — Full Build</title>
 <style>
 :root{--bg:#050814;--panel:#0b1020;--accent:#4ee1a1;--accent2:#7ad7ff;--muted:#9aa7bf;--danger:#ff6b6b;}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -23,35 +23,22 @@ canvas{background:radial-gradient(circle at top,#151b3a,#050814);border-radius:1
 #waveInfo{position:absolute;right:10px;top:10px;font-size:12px;color:var(--muted)}
 #msg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:20px;color:#fff;text-shadow:0 2px 6px #000;pointer-events:none;text-align:center;max-width:80%}
 footer{margin-top:6px;font-size:11px;color:var(--muted)}
-#shopOverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:flex-start;justify-content:center;z-index:60;padding:40px}
-.shop-card{background:#050814;border-radius:12px;padding:14px;max-width:980px;width:96%;box-shadow:0 10px 40px rgba(0,0,0,.8);display:grid;grid-template-columns:320px 1fr;gap:12px;color:#e6eef8}
-.shop-left{display:flex;flex-direction:column;gap:8px}
-.shop-right{display:flex;flex-direction:column;gap:8px}
-.shop-header{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.shop-controls{display:flex;gap:8px;align-items:center}
+#shopOverlay,#upgradeOverlay,#skillOverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+.card{background:#050814;border-radius:12px;padding:14px 16px;max-width:980px;width:96%;box-shadow:0 10px 40px rgba(0,0,0,.8);color:#e6eef8}
 .shop-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:520px;overflow:auto;padding-right:6px}
 .shop-item{border-radius:8px;border:1px solid rgba(255,255,255,.06);padding:8px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));display:flex;flex-direction:column;gap:6px}
-.shop-item .title{font-weight:700}
-.shop-item .meta{color:#9aa7bf;font-size:12px}
-.controls{display:flex;gap:8px;align-items:center}
 .qty{width:64px;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.25);color:#fff}
 .buy-btn{padding:6px 8px;border-radius:6px;background:var(--accent);color:#041814;border:none;cursor:pointer}
-.buy-btn:disabled{opacity:.45;cursor:not-allowed}
-.shop-footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
-.owned{color:#7ad7ff;font-weight:700}
-.filter-row{display:flex;gap:6px;flex-wrap:wrap}
-.small{font-size:12px;padding:6px 8px;border-radius:6px}
-.notice{color:#ffd166;font-weight:700}
 .close-x{background:transparent;border:1px solid rgba(255,255,255,.06);color:var(--muted);padding:6px;border-radius:6px;cursor:pointer}
 #debugBox{position:fixed;left:8px;bottom:8px;background:rgba(0,0,0,0.6);color:#fff;padding:6px;border-radius:8px;font-size:11px;max-width:260px;z-index:70;display:none}
-@media(max-width:900px){ .shop-card{grid-template-columns:1fr;max-height:80vh;overflow:auto} .shop-list{grid-template-columns:repeat(1,1fr)} }
+.fire-rate{font-weight:700;color:var(--accent2);margin-left:8px}
 </style>
 </head>
 <body>
 <div id="wrap">
   <header>
     <div class="panel">
-      <h1>Neon Dash Arena — Secret Shop</h1>
+      <h1>Neon Dash Arena — Full Build</h1>
       <div class="sep"></div>
       <div class="info">
         <div>Wave: <span id="wave" class="big">1</span></div>
@@ -81,71 +68,38 @@ footer{margin-top:6px;font-size:11px;color:var(--muted)}
 
   <main>
     <canvas id="game" width="1100" height="700"></canvas>
-    <div id="hud">Move: WASD / Arrows • Shoot: Space • Switch Weapon: Q/E • Dash: Shift • Blink: Alt+Click • Overdrive: F • Time Warp: G</div>
+    <div id="hud">Move: WASD / Arrows • Shoot: Space • Switch Weapon: Q/E • Dash: Shift • Overdrive: F • Time Warp: G</div>
     <div id="waveInfo">Enemies left: <span id="left">0</span></div>
     <div id="msg"></div>
   </main>
 
-  <footer>Secret sequence: H K J N opens shop and grants bonus credits.</footer>
+  <footer>Unlimited bullets, unlimited multiplier, secret H K J N opens shop with bonus credits.</footer>
 </div>
 
 <div id="shopOverlay" aria-hidden="true">
-  <div class="shop-card" role="dialog" aria-modal="true">
-    <div class="shop-left">
-      <div class="shop-header">
-        <div>
-          <h3 style="margin:0">Shop</h3>
-          <div style="color:#9aa7bf;font-size:12px">Game is paused while shop is open</div>
-        </div>
-        <div>
-          <button id="closeShop" class="close-x">Resume</button>
-        </div>
-      </div>
-
-      <div style="margin-top:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>Credits: <span id="shopCreditsDisplay" class="big">0</span></div>
-          <div class="shop-controls">
-            <select id="categoryFilter" class="small">
-              <option value="all">All</option>
-              <option value="permanent">Permanent</option>
-              <option value="consumable">Consumable</option>
-              <option value="utility">Utility</option>
-              <option value="weapons">Weapons</option>
-            </select>
-            <button id="sortPrice" class="small">Sort: Price</button>
-          </div>
-        </div>
-
-        <div style="margin-top:8px" class="filter-row">
-          <input id="searchBox" placeholder="Search items" style="flex:1;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.2);color:#fff" />
-          <button id="buyMax" class="small">Buy Max Affordable</button>
-        </div>
-
-        <div style="margin-top:8px;color:#9aa7bf;font-size:12px">Owned: <span id="ownedSummary" class="owned">none</span></div>
-      </div>
-
-      <div style="margin-top:12px">
-        <div style="font-weight:700;margin-bottom:6px">Quick bundles</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><h3 style="margin:0">Shop</h3><div style="color:#9aa7bf;font-size:12px">Game is paused while shop is open</div></div>
+      <div><button id="closeShop" class="close-x">Resume</button></div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:12px">
+      <div style="width:320px">
+        <div>Credits: <span id="shopCreditsDisplay" class="big">0</span></div>
+        <div style="margin-top:8px"><input id="searchBox" placeholder="Search items" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.2);color:#fff" /></div>
+        <div style="margin-top:8px">Owned: <span id="ownedSummary" class="big">none</span></div>
+        <div style="margin-top:12px">
           <button id="bundleStarter" class="btn">Starter Pack</button>
           <button id="bundleAmmo" class="btn">Ammo Pack</button>
           <button id="bundleBoost" class="btn">Boost Pack</button>
         </div>
       </div>
-    </div>
-
-    <div class="shop-right">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="font-weight:700">Items</div>
-        <div style="color:#9aa7bf;font-size:12px">Buy items; shop stays open after purchase</div>
-      </div>
-
-      <div id="shopList" class="shop-list" aria-live="polite"></div>
-
-      <div class="shop-footer">
-        <div style="color:#9aa7bf;font-size:12px">Tip: Use quantity to buy multiple at once</div>
-        <div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700">Items</div>
+          <div style="color:#9aa7bf;font-size:12px">Buy items; shop stays open after purchase</div>
+        </div>
+        <div id="shopList" class="shop-list" style="margin-top:8px"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px">
           <button id="closeShopBottom" class="btn">Close Shop</button>
         </div>
       </div>
@@ -153,96 +107,100 @@ footer{margin-top:6px;font-size:11px;color:var(--muted)}
   </div>
 </div>
 
+<div id="upgradeOverlay"><div class="card"><h3>Choose an upgrade</h3><div id="upgradeList" style="margin-top:8px"></div></div></div>
+<div id="skillOverlay"><div class="card"><h3>Skill Tree</h3><div id="skillList" style="margin-top:8px"></div><div style="margin-top:8px"><button id="closeSkills" class="btn">Close</button></div></div></div>
+
 <div id="debugBox"></div>
 
 <script>
+/* Full game JS (unbounded multi, no bullets cap, secret H K J N) */
 (function(){
 'use strict';
 
-/* -------------------------
-   Utilities and globals
-   ------------------------- */
+/* Utilities */
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rand=(a,b)=>Math.random()*(b-a)+a;
 const rndInt=(a,b)=>Math.floor(rand(a,b+1));
 const dist=(x1,y1,x2,y2)=>Math.hypot(x2-x1,y2-y1);
 const now=()=>performance.now();
 
-let canvas,ctx,W,H;
-let elScore,elHp,elWave,elLeft,elHi,elMsg,elCred,elMut,shopCreditsDisplay,ownedSummary;
-let shopOverlay,shopList,categoryFilter,searchBox,sortPriceBtn,buyMaxBtn,closeShopBtn,closeShopBottom,bundleStarter,bundleAmmo,bundleBoost;
+/* DOM refs */
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d',{alpha:false});
+let W = canvas.width, H = canvas.height;
+const elScore = document.getElementById('score');
+const elHp = document.getElementById('hp');
+const elWave = document.getElementById('wave');
+const elLeft = document.getElementById('left');
+const elHi = document.getElementById('hi');
+const elMsg = document.getElementById('msg');
+const elCred = document.getElementById('cred');
+const elMut = document.getElementById('mut');
+const shopOverlay = document.getElementById('shopOverlay');
+const shopList = document.getElementById('shopList');
+const shopCreditsDisplay = document.getElementById('shopCreditsDisplay');
+const ownedSummary = document.getElementById('ownedSummary');
+const upgradeOverlay = document.getElementById('upgradeOverlay');
+const upgradeList = document.getElementById('upgradeList');
+const skillOverlay = document.getElementById('skillOverlay');
+const skillList = document.getElementById('skillList');
+const debugBox = document.getElementById('debugBox');
 
-const keys={},touch={left:false,right:false,up:false,down:false,shoot:false,dash:false};
+/* Input */
+const keys={}, touch={left:false,right:false,up:false,down:false,shoot:false,dash:false};
 const mouse={x:0,y:0};
 
+/* Audio stub */
 let audioCtx=null,masterGain=null;
 function ensureAudio(){ if(audioCtx) return; try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); masterGain=audioCtx.createGain(); masterGain.gain.value=0.9; masterGain.connect(audioCtx.destination); }catch(e){console.warn('Audio disabled',e);} }
 function sfx(type){ if(!audioCtx) return; const t=audioCtx.currentTime; const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type='square'; if(type==='shoot'){o.frequency.setValueAtTime(880,t);g.gain.setValueAtTime(0.06,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);} else if(type==='shotgun'){o.frequency.setValueAtTime(520,t);g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);} else if(type==='rail'){o.frequency.setValueAtTime(220,t);g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);} else if(type==='missile'){o.frequency.setValueAtTime(320,t);g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.28);} else if(type==='explode'){o.frequency.setValueAtTime(120,t);g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.4);} else if(type==='dash'){o.frequency.setValueAtTime(1200,t);g.gain.setValueAtTime(0.04,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);} else if(type==='power'){o.frequency.setValueAtTime(1400,t);g.gain.setValueAtTime(0.06,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);} o.connect(g); g.connect(masterGain||audioCtx.destination); o.start(t); o.stop(t+0.5); }
 
-/* -------------------------
-   Game state
-   ------------------------- */
+/* State */
 const state={
   running:true,paused:false,time:now(),dt:0,
   score:0,hi:0,wave:1,mode:'Endless',
   enemies:[],bullets:[],eBullets:[],particles:[],pickups:[],
   player:null,enemiesLeft:0,inUpgrade:false,
-  shopCredits:0,difficulty:1,boss:null,
+  shopCredits:400,difficulty:1,boss:null,
   weapons:[],weaponIndex:0,skills:{},permanent:{hp:0,damage:0,move:0,fire:0},
   mutation:'None',mutLevel:0,overdrive:0,timeWarp:0,
   shopWasPaused:false, owned:{}, pierceBuff:0, reviveCount:0, rerollNext:false
 };
 
-/* -------------------------
-   Secret key sequence
-   ------------------------- */
+/* Secret sequence H K J N */
 const secretSequence = ['h','k','j','n'];
 let secretProgress = 0;
 function handleSecretKey(k){
-  // normalize to lowercase single char
-  const c = (k || '').toLowerCase();
+  const c = (k||'').toLowerCase();
   if(c === secretSequence[secretProgress]){
     secretProgress++;
     if(secretProgress >= secretSequence.length){
       secretProgress = 0;
-      // grant free shop menu: give credits and open shop
-      state.shopCredits += 12000000; // generous free bonus
-      openShop(true); // true = opened via secret
-      showMsg('Secret unlocked: free shop credits!');
+      state.shopCredits += 1200;
+      openShop(true);
+      showMsg('Secret unlocked: +1200 credits');
     }
   } else {
-    // reset if wrong key (but if key equals first, set progress to 1)
-    if(c === secretSequence[0]) secretProgress = 1;
-    else secretProgress = 0;
+    if(c === secretSequence[0]) secretProgress = 1; else secretProgress = 0;
   }
 }
 
-/* -------------------------
-   UI helpers
-   ------------------------- */
+/* Helpers */
 function showMsg(t){ if(elMsg) elMsg.textContent = t; setTimeout(()=>{ if(elMsg && elMsg.textContent === t) elMsg.textContent = ''; }, 2200); }
-function showDebug(msg){ const d=document.getElementById('debugBox'); d.style.display='block'; d.textContent=msg; console.error(msg); }
-function clearDebug(){ const d=document.getElementById('debugBox'); d.style.display='none'; }
+function showDebug(msg){ debugBox.style.display='block'; debugBox.textContent = msg; console.error(msg); }
+function clearDebug(){ debugBox.style.display='none'; }
 
-/* -------------------------
-   Entities
-   ------------------------- */
+/* Entities */
 class Particle{constructor(x,y,color,life=600){this.x=x;this.y=y;this.vx=rand(-80,80);this.vy=rand(-80,80);this.color=color;this.life=life;this.age=0;}update(dt){this.x+=this.vx*dt;this.y+=this.vy*dt;this.age+=dt*1000;}draw(){const t=1-(this.age/this.life);if(t<=0)return;ctx.globalAlpha=t;ctx.fillStyle=this.color;ctx.beginPath();ctx.arc(this.x,this.y,2*t*3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}}
 class Bullet{constructor(x,y,vx,vy,color,owner='e',r=4){this.x=x;this.y=y;this.vx=vx;this.vy=vy;this.color=color;this.owner=owner;this.r=r;this.age=0;this.homing=false;this.pierce=0;this.gravity=false;}update(dt){if(this.homing&&this.owner==='p'){let nearest=null,nd=99999;for(const e of state.enemies){const d=dist(this.x,this.y,e.x,e.y);if(d<nd){nd=d;nearest=e;}}if(nearest){const a=Math.atan2(nearest.y-this.y,nearest.x-this.x);const s=Math.hypot(this.vx,this.vy);this.vx+=(Math.cos(a)*s-this.vx)*0.12;this.vy+=(Math.sin(a)*s-this.vy)*0.12;}}this.x+=this.vx*dt;this.y+=this.vy*dt;this.age+=dt*1000;}draw(){ctx.fillStyle=this.color;ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fill();}}
 class Homing extends Bullet{constructor(x,y,s,color){super(x,y,0,-s,color,'p',6);this.homing=true;}}
 class Enemy{constructor(x,y,type=0){this.x=x;this.y=y;this.type=type;this.r=type===0?12:type===1?16:type===2?10:type===3?18:14;this.hp=type===0?2:type===1?5:type===2?1:type===3?8:3;this.speed=type===0?120:type===1?80:type===2?220:type===3?60:0;this.color=type===0?'#ff6b6b':type===1?'#ffb86b':type===2?'#ffd166':type===3?'#7ad7ff':'#ff9fb0';this.shootT=rand(800,1600);this.phase=Math.random()*Math.PI*2;this.shield=type===3?3:0;this.elite=false;}update(dt){const p=state.player;if(this.type===4){this.shootT-=dt*1000;if(this.shootT<=0){this.shootT=rand(900,1600);this.shoot()}return;}if(this.type===2){const a=Math.atan2(p.y-this.y,p.x-this.x);const base=this.speed*(1+(state.difficulty-1)*0.15);this.x+=Math.cos(a)*base*dt;this.y+=Math.sin(a)*base*dt;}else{this.phase+=dt*2;const a=Math.atan2(p.y-this.y,p.x-this.x);const base=this.speed*(1+(state.difficulty-1)*0.12);this.x+=Math.cos(a)*base*dt+Math.cos(this.phase)*30*dt;this.y+=Math.sin(a)*base*dt+Math.sin(this.phase)*30*dt;}this.shootT-=dt*1000;if(this.shootT<=0){this.shootT=rand(900,2000);this.shoot();}}shoot(){const p=state.player;if(this.type===1||this.type===4){const a=Math.atan2(p.y-this.y,p.x-this.x);const s=260;state.eBullets.push(new Bullet(this.x,this.y,Math.cos(a)*s,Math.sin(a)*s,'#ffd6d6','e',6));}else if(this.type===0){if(Math.random()<0.2){const a=Math.atan2(p.y-this.y,p.x-this.x);const s=180;state.eBullets.push(new Bullet(this.x,this.y,Math.cos(a)*s,Math.sin(a)*s,'#ffd6d6','e',5));}}}draw(){ctx.save();ctx.translate(this.x,this.y);ctx.fillStyle='rgba(255,107,107,0.12)';ctx.beginPath();ctx.arc(0,0,this.r*1.8,0,Math.PI*2);ctx.fill();ctx.fillStyle=this.color;ctx.beginPath();ctx.arc(0,0,this.r,0,Math.PI*2);ctx.fill();if(this.shield>0){ctx.strokeStyle='rgba(122,215,255,0.7)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,this.r+4,0,Math.PI*2);ctx.stroke();}ctx.restore();}}
-
 class Boss{constructor(){this.x=W/2;this.y=-120;this.r=60;this.hp=260+state.wave*10;this.maxHp=this.hp;this.phase=0;this.t=0;}update(dt){if(this.y<140){this.y+=60*dt;return;}this.t+=dt*1000;if(this.hp<this.maxHp*0.6&&this.phase<1){this.phase=1;sfx('power');}if(this.hp<this.maxHp*0.3&&this.phase<2){this.phase=2;sfx('power');}if(this.phase===0)this.x=W/2+Math.sin(this.t/600)*180;else if(this.phase===1)this.x=W/2+Math.sin(this.t/400)*260;else this.x=W/2+Math.sin(this.t/200)*320;if(this.t>(this.phase===0?900:this.phase===1?700:450)){this.t=0;this.attack();}}attack(){if(this.phase===0){const c=8;for(let i=0;i<c;i++){const a=(i/(c-1)-0.5)*Math.PI*0.9;const s=220;state.eBullets.push(new Bullet(this.x+Math.sin(a)*20,this.y+30,Math.sin(a)*s,Math.cos(a)*s,'#ffd6d6','e',6));}}else if(this.phase===1){const c=16;for(let i=0;i<c;i++){const a=(now()/1000)+i*0.4;const s=180;state.eBullets.push(new Bullet(this.x+Math.cos(a)*30,this.y+Math.sin(a)*30,Math.cos(a)*s,Math.sin(a)*s,'#ffd6d6','e',5));}}else{for(let i=0;i<28;i++){const a=rand(0,Math.PI*2);const s=300;state.eBullets.push(new Bullet(this.x+Math.cos(a)*40,this.y+Math.sin(a)*40,Math.cos(a)*s,Math.sin(a)*s,'#ffd6d6','e',5));}}sfx('rail');}draw(){ctx.save();ctx.translate(this.x,this.y);ctx.fillStyle='#ff9fb0';ctx.beginPath();ctx.arc(0,0,this.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff6b6b';ctx.beginPath();ctx.arc(0,0,this.r*0.6,0,Math.PI*2);ctx.fill();ctx.restore();const w=360,h=10,x=W/2-w/2,y=18;ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(x,y,w,h);ctx.fillStyle='#ff6b6b';ctx.fillRect(x,y,w*(this.hp/this.maxHp),h);}}
-
 class Pickup{constructor(x,y,type,amount){this.x=x;this.y=y;this.type=type;this.amount=amount;this.r=8;this.age=0;}update(dt){this.age+=dt*1000;}draw(){ctx.fillStyle=this.type==='credit'?'#ffd166':this.type==='hp'?'#4ee1a1':'#7ad7ff';ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fill();}}
-
 class Player{constructor(){this.x=W/2;this.y=H/2;this.r=14;this.speed=260+state.permanent.move;this.hp=5+state.permanent.hp;this.maxHp=this.hp;this.cool=0;this.baseCool=Math.max(0,220-state.permanent.fire);this.bulletSpeed=420;this.multi=1;this.spread=0;this.inv=0;this.dashCooldown=0;this.shield=0;this.orbiters=[];this.charge=0;}update(dt){let vx=0,vy=0;if(keys.a||keys.ArrowLeft||touch.left)vx-=1;if(keys.d||keys.ArrowRight||touch.right)vx+=1;if(keys.w||keys.ArrowUp||touch.up)vy-=1;if(keys.s||keys.ArrowDown||touch.down)vy+=1;const len=Math.hypot(vx,vy)||1;let speed=this.speed;if(state.timeWarp>0)speed*=0.7;this.x+=(vx/len)*speed*dt;this.y+=(vy/len)*speed*dt;this.x=clamp(this.x,this.r+8,W-this.r-8);this.y=clamp(this.y,this.r+8,H-this.r-8);this.cool-=dt*1000;let fireRateMult=1;if(state.overdrive>0)fireRateMult=0.4;if((keys[' ']||keys.Space||touch.shoot)&&this.cool<=0){fireWeapon(this);this.cool=this.baseCool*fireRateMult;}this.dashCooldown-=dt*1000;if((keys.Shift||touch.dash)&&this.dashCooldown<=0){this.dash();this.dashCooldown=1200;}if(this.inv>0)this.inv-=dt*1000;this.orbiters.forEach((o,i)=>{const a=(now()/200+i*1.2)*0.002;const tx=this.x+Math.cos(a)*(this.r+18);const ty=this.y+Math.sin(a)*(this.r+18);o.x+=(tx-o.x)*0.2;o.y+=(ty-o.y)*0.2;});}dash(){let dx=0,dy=-1;if(keys.a||keys.ArrowLeft)dx=-1;if(keys.d||keys.ArrowRight)dx=1;if(keys.w||keys.ArrowUp)dy=-1;if(keys.s||keys.ArrowDown)dy=1;if(dx===0&&dy===0){dx=mouse.x-this.x;dy=mouse.y-this.y;}const len=Math.hypot(dx,dy)||1;const distDash=160;this.x+=dx/len*distDash;this.y+=dy/len*distDash;this.inv=200;for(let i=0;i<12;i++)state.particles.push(new Particle(this.x,this.y,'#4ee1a1',rand(200,600)));sfx('dash');}draw(){ctx.save();ctx.translate(this.x,this.y);ctx.fillStyle=this.inv>0?'#bfffe8':'#4ee1a1';ctx.beginPath();ctx.arc(0,0,this.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#041814';ctx.fillRect(-5,-5,4,4);ctx.fillRect(1,-5,4,4);ctx.fillRect(-5,1,4,4);ctx.fillRect(1,1,4,4);ctx.restore();this.orbiters.forEach(o=>{ctx.fillStyle='#7ad7ff';ctx.beginPath();ctx.arc(o.x,o.y,6,0,Math.PI*2);ctx.fill();});if(this.shield>0){ctx.strokeStyle='rgba(122,215,255,0.6)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(this.x,this.y,this.r+8,0,Math.PI*2);ctx.stroke();}}}
 
-/* -------------------------
-   Weapons
-   ------------------------- */
+/* Weapons */
 function fireWeapon(player){const w=state.weapons[state.weaponIndex];if(!w)return;w.fire(player);}
-
 function registerWeapons(){
   state.weapons=[];
   state.weapons.push({
@@ -311,9 +269,7 @@ function registerWeapons(){
   });
 }
 
-/* -------------------------
-   Spawning / waves
-   ------------------------- */
+/* Spawning */
 function spawnWave(){
   state.enemies.length=0;state.eBullets.length=0;state.bullets.length=0;state.pickups.length=0;state.particles.length=0;state.boss=null;
   state.difficulty=1+(state.wave-1)*0.15;
@@ -333,14 +289,9 @@ function spawnWave(){
   applyMutationEffects();
   updateUI();
 }
+function applyMutationEffects(){ if(state.wave%10===1){state.mutLevel++;const m=state.mutLevel%4;if(m===1)state.mutation='Faster Enemies';else if(m===2)state.mutation='More Enemy Bullets';else if(m===3)state.mutation='Shrinking Arena';else state.mutation='Player Power Surge';}}
 
-function applyMutationEffects(){
-  if(state.wave%10===1){state.mutLevel++;const m=state.mutLevel%4;if(m===1)state.mutation='Faster Enemies';else if(m===2)state.mutation='More Enemy Bullets';else if(m===3)state.mutation='Shrinking Arena';else state.mutation='Player Power Surge';}
-}
-
-/* -------------------------
-   UI / Shop logic
-   ------------------------- */
+/* UI */
 function updateUI(){
   elScore.textContent=state.score;
   elHp.textContent=state.player?state.player.hp:0;
@@ -359,11 +310,8 @@ function updateUI(){
   ownedSummary.textContent = keysOwned.length? keysOwned.join(', ') : 'none';
 }
 
-/* -------------------------
-   Shop data & rendering
-   ------------------------- */
+/* Shop */
 function shopPrice(base){ return Math.max(5, Math.floor(base * (1 + state.wave * 0.04))); }
-
 const SHOP_ITEMS = [
   {id:'perm_hp', title:'Permanent +1 Max HP', baseCost:120, category:'permanent', type:'permanent', desc:'Adds +1 to max HP permanently', apply:(qty)=>{ state.permanent.hp += qty; state.player.maxHp += qty; state.player.hp = Math.min(state.player.maxHp, state.player.hp + qty); }},
   {id:'perm_fire', title:'Permanent Fire Rate', baseCost:140, category:'permanent', type:'permanent', desc:'Reduce base cooldown by 20ms per purchase', apply:(qty)=>{ state.permanent.fire += 20*qty; state.player.baseCool = Math.max(0, state.player.baseCool - 20*qty); }},
@@ -371,7 +319,7 @@ const SHOP_ITEMS = [
   {id:'perm_damage', title:'Permanent Damage', baseCost:160, category:'permanent', type:'permanent', desc:'Increase bullet damage by +1 per purchase', apply:(qty)=>{ state.permanent.damage += qty; }},
   {id:'instant_overdrive', title:'Instant Overdrive (5s)', baseCost:90, category:'consumable', type:'consumable', desc:'Activate overdrive immediately', apply:(qty)=>{ state.overdrive += 4000*qty; }},
   {id:'instant_timewarp', title:'Instant Time Warp (3s)', baseCost:80, category:'consumable', type:'consumable', desc:'Slow enemies immediately', apply:(qty)=>{ state.timeWarp += 3000*qty; }},
-  {id:'extra_multi', title:'+1 Permanent Bullet', baseCost:220, category:'permanent', type:'permanent', desc:'Increase player.multi permanently', apply:(qty)=>{ state.player.multi = Math.min(50, (state.player.multi||1) + qty); }},
+  {id:'extra_multi', title:'+1 Permanent Bullet', baseCost:220, category:'permanent', type:'permanent', desc:'Increase player.multi permanently', apply:(qty)=>{ state.player.multi = (state.player.multi||1) + qty; }},
   {id:'drone', title:'Deploy Drone', baseCost:180, category:'utility', type:'permanent', desc:'Add an orbiting drone (max 6)', apply:(qty)=>{ for(let i=0;i<qty;i++){ if(state.player.orbiters.length<6) state.player.orbiters.push({x:state.player.x+20,y:state.player.y,damage:1}); }}},
   {id:'pierce', title:'Bullet Pierce', baseCost:200, category:'weapons', type:'consumable', desc:'Bullets pierce 1 extra enemy per purchase (stacking)', apply:(qty)=>{ state.pierceBuff = (state.pierceBuff||0) + qty; }},
   {id:'revive', title:'Revive (1 HP)', baseCost:400, category:'utility', type:'consumable', desc:'Revive once if you die (consumable)', apply:(qty)=>{ state.reviveCount = (state.reviveCount||0) + qty; }},
@@ -380,15 +328,12 @@ const SHOP_ITEMS = [
   {id:'starter', title:'Starter Pack', baseCost:200, category:'consumable', type:'consumable', desc:'Gives credits, small boost', apply:(qty)=>{ state.shopCredits += 200*qty; state.player.hp = Math.min(state.player.maxHp, state.player.hp + 1*qty); }},
   {id:'boost', title:'Boost Pack', baseCost:180, category:'consumable', type:'consumable', desc:'Temporary speed + damage', apply:(qty)=>{ state.player.speed += 8*qty; setTimeout(()=>{ state.player.speed -= 8*qty; }, 15000*qty); }}
 ];
-
 let shopSortByPrice = true;
 
 function renderShopItems(){
   shopList.innerHTML = '';
-  const filter = categoryFilter.value || 'all';
-  const q = (searchBox.value||'').trim().toLowerCase();
+  const q = (document.getElementById('searchBox').value||'').trim().toLowerCase();
   let items = SHOP_ITEMS.slice();
-  if(filter !== 'all') items = items.filter(it => it.category === filter);
   if(q) items = items.filter(it => (it.title+it.desc).toLowerCase().includes(q));
   if(shopSortByPrice) items.sort((a,b)=>shopPrice(a.baseCost)-shopPrice(b.baseCost));
   items.forEach(it=>{
@@ -397,7 +342,7 @@ function renderShopItems(){
     const owned = state.owned[it.id]||0;
     div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div class="title">${it.title}</div><div style="font-weight:700">${cost}c</div></div>
       <div class="meta">${it.desc}</div>
-      <div class="controls">
+      <div class="controls" style="margin-top:6px">
         <input class="qty" type="number" min="1" value="1" />
         <div style="display:flex;gap:8px;align-items:center">
           <button class="buy-btn">Buy</button>
@@ -418,8 +363,7 @@ function renderShopItems(){
         buyBtn.textContent = 'Bought';
         setTimeout(()=>{ buyBtn.textContent = 'Buy'; }, 700);
       } else {
-        elMsg.textContent = 'Not enough credits';
-        setTimeout(()=>{ elMsg.textContent = ''; }, 1200);
+        showMsg('Not enough credits');
       }
     };
     shopList.appendChild(div);
@@ -427,78 +371,47 @@ function renderShopItems(){
   updateUI();
 }
 
-/* -------------------------
-   Bundles & helpers
-   ------------------------- */
-function setupBundles(){
-  bundleStarter.onclick = ()=>{
-    const cost = shopPrice(200);
-    if(state.shopCredits >= cost){ state.shopCredits -= cost; state.shopCredits += 120; state.player.hp = Math.min(state.player.maxHp, state.player.hp + 1); updateUI(); }
-    else { elMsg.textContent='Not enough credits'; setTimeout(()=>elMsg.textContent='',1000); }
-  };
-  bundleAmmo.onclick = ()=>{
-    const cost = shopPrice(120);
-    if(state.shopCredits >= cost){ state.shopCredits -= cost; state.shopCredits += 80; updateUI(); } else { elMsg.textContent='Not enough credits'; setTimeout(()=>elMsg.textContent='',1000); }
-  };
-  bundleBoost.onclick = ()=>{
-    const cost = shopPrice(180);
-    if(state.shopCredits >= cost){ state.shopCredits -= cost; state.player.speed += 12; setTimeout(()=>state.player.speed -= 12,15000); updateUI(); } else { elMsg.textContent='Not enough credits'; setTimeout(()=>elMsg.textContent='',1000); }
-  };
-}
-
-function buyMaxAffordable(){
-  const items = SHOP_ITEMS.slice().sort((a,b)=>shopPrice(a.baseCost)-shopPrice(b.baseCost));
-  for(const it of items){
-    const cost = shopPrice(it.baseCost);
-    if(cost <= 0) continue;
-    const qty = Math.floor(state.shopCredits / cost);
-    if(qty <= 0) continue;
-    state.shopCredits -= cost * qty;
-    try{ it.apply(qty); state.owned[it.id] = (state.owned[it.id]||0) + qty; } catch(e){ console.error(e); }
-  }
-  renderShopItems();
-  updateUI();
-}
-
-/* -------------------------
-   Shop open/close (pauses game)
-   ------------------------- */
-function openShop(fromSecret=false){
-  state.shopWasPaused = state.paused;
-  state.paused = true;
-  shopOverlay.style.display='flex';
-  shopOverlay.setAttribute('aria-hidden','false');
-  renderShopItems();
-  updateUI();
-  if(fromSecret) showMsg('Secret shop opened — enjoy your bonus credits');
-}
-function closeShop(){
-  shopOverlay.style.display='none';
-  shopOverlay.setAttribute('aria-hidden','true');
-  state.paused = state.shopWasPaused || false;
-  updateUI();
-}
-
-/* -------------------------
-   Game logic: collisions, update, draw
-   ------------------------- */
+/* Kill / collisions */
 function circleHit(a,b){return dist(a.x,a.y,b.x,b.y)<=a.r+b.r;}
-function killEnemy(idx,e){ state.enemies.splice(idx,1); state.enemiesLeft--; addScore(e.elite?80:20); if(Math.random()<0.75)state.pickups.push(new Pickup(e.x,e.y,'credit',rndInt(40,160))); if(Math.random()<0.25)state.pickups.push(new Pickup(e.x,e.y,'hp',1)); for(let i=0;i<6;i++)state.particles.push(new Particle(e.x,e.y,'#ffd6d6',rand(200,600))); if(state.enemiesLeft<=0&&!state.boss)waveCleared(); }
+function killEnemy(idx,e){ state.enemies.splice(idx,1);state.enemiesLeft--;state.score+=e.elite?80:20; if(Math.random()<0.75)state.pickups.push(new Pickup(e.x,e.y,'credit',rndInt(40,160))); if(Math.random()<0.25)state.pickups.push(new Pickup(e.x,e.y,'hp',1)); for(let i=0;i<6;i++)state.particles.push(new Particle(e.x,e.y,'#ffd6d6',rand(200,600))); if(state.enemiesLeft<=0&&!state.boss)waveCleared(); }
+function waveCleared(){ if(state.wave%5===0){state.score+=500;state.shopCredits+=Math.floor(120+state.wave*10);} state.inUpgrade=true; showUpgradeOverlay(); }
 
+/* Upgrade overlay */
+function showUpgradeOverlay(){
+  upgradeList.innerHTML='';
+  const opts=[
+    {title:'Faster Fire',desc:'-20% cooldown',apply:()=>{state.player.baseCool=Math.max(0,state.player.baseCool*0.8);}},
+    {title:'Extra Bullet',desc:'+1 bullet per shot',apply:()=>{state.player.multi=(state.player.multi||1)+1;}},
+    {title:'Move Speed',desc:'+20% speed',apply:()=>{state.player.speed*=1.2;}},
+    {title:'Max HP + Heal',desc:'+1 max HP and heal 2',apply:()=>{state.player.maxHp+=1;state.player.hp=Math.min(state.player.maxHp,state.player.hp+2);}},
+    {title:'Spread Shot',desc:'Adds spread to shotgun',apply:()=>{state.player.spread=Math.min(1, state.player.spread+0.12);}},
+    {title:'Drone',desc:'Gain an orbiting drone',apply:()=>{if(state.player.orbiters.length<6)state.player.orbiters.push({x:state.player.x+20,y:state.player.y,damage:1});}}
+  ];
+  const picks=[];
+  while(picks.length<3){const o=opts[Math.floor(Math.random()*opts.length)];if(!picks.includes(o))picks.push(o);}
+  picks.forEach(opt=>{
+    const div=document.createElement('div');div.className='upgrade';div.style.display='flex';div.style.justifyContent='space-between';div.style.alignItems='center';div.style.padding='8px';div.style.border='1px solid rgba(255,255,255,0.06)';div.style.borderRadius='8px';div.innerHTML=`<div><div style="font-weight:700">${opt.title}</div><div style="color:#9aa7bf">${opt.desc}</div></div><div><button class="btn">Take</button></div>`;
+    div.querySelector('button').onclick=()=>{opt.apply();upgradeOverlay.style.display='none';state.inUpgrade=false;state.wave++;state.shopCredits+=Math.floor(60+state.wave*8);spawnWave();updateUI();};
+    upgradeList.appendChild(div);
+  });
+  upgradeOverlay.style.display='flex';
+}
+
+/* Update / draw */
 function update(dt){
   if(!state.running||state.paused||state.inUpgrade) return;
-  if(state.overdrive>0) state.overdrive -= dt*1000;
-  if(state.timeWarp>0) state.timeWarp -= dt*1000;
+  if(state.overdrive>0)state.overdrive-=dt*1000;
+  if(state.timeWarp>0)state.timeWarp-=dt*1000;
   state.player.update(dt);
-  const slowFactor = state.timeWarp>0?0.5:1;
+  const slowFactor=state.timeWarp>0?0.5:1;
 
-  // NOTE: removed any bullet cap — bullets array can grow without enforced limit.
-  for(const b of state.bullets) b.update(dt);
-  for(const b of state.eBullets) b.update(dt*slowFactor);
-  for(const p of state.particles) p.update(dt);
-  for(const pu of state.pickups) pu.update(dt);
-  for(const e of state.enemies) e.update(dt*slowFactor);
-  if(state.boss) state.boss.update(dt*slowFactor);
+  // NO global bullet cap — bullets array can grow without enforced limit
+  for(const b of state.bullets)b.update(dt);
+  for(const b of state.eBullets)b.update(dt*slowFactor);
+  for(const p of state.particles)p.update(dt);
+  for(const pu of state.pickups)pu.update(dt);
+  for(const e of state.enemies)e.update(dt*slowFactor);
+  if(state.boss)state.boss.update(dt*slowFactor);
 
   for(const b of state.bullets){
     if(b.gravity){
@@ -516,7 +429,7 @@ function update(dt){
       if(!b.pierce)state.bullets.splice(i,1);
       state.boss.hp-=1+state.permanent.damage;
       state.particles.push(new Particle(b.x,b.y,'#ffb86b',300));
-      if(state.boss.hp<=0){addScore(1000);state.boss=null;state.enemiesLeft=0;waveCleared();}
+      if(state.boss.hp<=0){state.score+=1000;state.boss=null;state.enemiesLeft=0;waveCleared();}
       continue;
     }
     for(let j=state.enemies.length-1;j>=0;j--){
@@ -546,13 +459,13 @@ function update(dt){
   for(let i=state.pickups.length-1;i>=0;i--){
     const p=state.pickups[i];
     if(circleHit(p,state.player)){
-      if(p.type==='credit') state.shopCredits += p.amount;
-      else if(p.type==='hp') state.player.hp = Math.min(state.player.maxHp, state.player.hp + p.amount);
-      state.pickups.splice(i,1); sfx('power');
+      if(p.type==='credit')state.shopCredits+=p.amount;
+      else if(p.type==='hp')state.player.hp=Math.min(state.player.maxHp,state.player.hp+p.amount);
+      state.pickups.splice(i,1);sfx('power');
     }
   }
 
-  for(let i=state.particles.length-1;i>=0;i--) if(state.particles[i].age>state.particles[i].life) state.particles.splice(i,1);
+  for(let i=state.particles.length-1;i>=0;i--)if(state.particles[i].age>state.particles[i].life)state.particles.splice(i,1);
 
   updateUI();
 }
@@ -566,12 +479,12 @@ function draw(){
 
   if(state.mutation==='Shrinking Arena'){ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=2;const margin=20+state.wave*0.5;ctx.strokeRect(margin,margin,W-margin*2,H-margin*2);}
 
-  for(const p of state.particles) p.draw();
-  for(const pu of state.pickups) pu.draw();
-  for(const e of state.enemies) e.draw();
-  if(state.boss) state.boss.draw();
-  for(const b of state.bullets) b.draw();
-  for(const b of state.eBullets) b.draw();
+  for(const p of state.particles)p.draw();
+  for(const pu of state.pickups)pu.draw();
+  for(const e of state.enemies)e.draw();
+  if(state.boss)state.boss.draw();
+  for(const b of state.bullets)b.draw();
+  for(const b of state.eBullets)b.draw();
   state.player.draw();
 
   ctx.save();ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(10,H-52,420,44);ctx.fillStyle='#fff';ctx.font='12px Inter, Arial';
@@ -582,124 +495,64 @@ function draw(){
   ctx.restore();
 }
 
-/* -------------------------
-   Game control
-   ------------------------- */
+/* Damage / score */
+function addScore(v){state.score+=v;if(state.score>state.hi){state.hi=state.score;localStorage.setItem('nda_hi',state.hi);}updateUI();}
+function damagePlayer(d){if(state.player.inv>0)return;if(state.player.shield>0){state.player.shield-=d;if(state.player.shield<0)state.player.shield=0;return;}state.player.hp-=d;state.player.inv=800;for(let i=0;i<12;i++)state.particles.push(new Particle(state.player.x,state.player.y,'#ff6b6b',rand(300,800)));sfx('explode');if(state.player.hp<=0)gameOver();}
+function gameOver(){state.running=false;elMsg.textContent='Game Over — Press Restart';}
+
+/* Loop */
 function loop(){
   const t=now();let dt=(t-state.time)/1000;if(dt>0.033)dt=0.033;state.time=t;state.dt=dt;
   try{update(dt);draw();}catch(err){showDebug('Runtime error: '+(err&&err.message?err.message:String(err)));state.running=false;}
   requestAnimationFrame(loop);
 }
-function restart(){location.reload();}
-function togglePause(){state.paused=!state.paused;document.getElementById('btnPause').textContent=state.paused?'Resume':'Pause';}
-function switchWeapon(dir){state.weaponIndex=(state.weaponIndex+dir+state.weapons.length)%state.weapons.length;sfx('power');}
 
-/* -------------------------
-   Damage / score / wave
-   ------------------------- */
-function addScore(v){state.score+=v;if(state.score>state.hi){state.hi=state.score;localStorage.setItem('nda_hi',state.hi);}updateUI();}
-function damagePlayer(d){if(state.player.inv>0)return;if(state.player.shield>0){state.player.shield-=d;if(state.player.shield<0)state.player.shield=0;return;}state.player.hp-=d;state.player.inv=800;for(let i=0;i<12;i++)state.particles.push(new Particle(state.player.x,state.player.y,'#ff6b6b',rand(300,800)));sfx('explode');if(state.player.hp<=0)gameOver();}
-function gameOver(){state.running=false;elMsg.textContent='Game Over — Press Restart';}
-function waveCleared(){ if(state.wave%5===0){addScore(500);state.shopCredits+=Math.floor(120+state.wave*10);} state.inUpgrade=true; showUpgradeOverlay(); }
-
-/* -------------------------
-   Upgrades overlay
-   ------------------------- */
-function showUpgradeOverlay(){
-  const upgradeListEl = document.getElementById('upgradeList');
-  if(!upgradeListEl) return;
-  upgradeListEl.innerHTML='';
-  const opts=[
-    {title:'Faster Fire',desc:'-20% cooldown',apply:()=>{state.player.baseCool=Math.max(0,state.player.baseCool*0.8);}},
-    {title:'Extra Bullet',desc:'+1 bullet per shot',apply:()=>{state.player.multi=Math.min(50,(state.player.multi||1)+1);}},
-    {title:'Move Speed',desc:'+20% speed',apply:()=>{state.player.speed*=1.2;}},
-    {title:'Max HP + Heal',desc:'+1 max HP and heal 2',apply:()=>{state.player.maxHp+=1;state.player.hp=Math.min(state.player.maxHp,state.player.hp+2);}},
-    {title:'Spread Shot',desc:'Adds spread to shotgun',apply:()=>{state.player.spread=Math.min(1, state.player.spread+0.12);}},
-    {title:'Drone',desc:'Gain an orbiting drone',apply:()=>{if(state.player.orbiters.length<6)state.player.orbiters.push({x:state.player.x+20,y:state.player.y,damage:1});}}
-  ];
-  const picks=[];
-  while(picks.length<3){const o=opts[Math.floor(Math.random()*opts.length)];if(!picks.includes(o))picks.push(o);}
-  picks.forEach(opt=>{
-    const div=document.createElement('div');div.className='upgrade';
-    div.innerHTML=`<div><div style="font-weight:700">${opt.title}</div><div style="color:#9aa7bf">${opt.desc}</div></div><div><button class="btn">Take</button></div>`;
-    div.querySelector('button').onclick=()=>{opt.apply();document.getElementById('upgradeOverlay').style.display='none';state.inUpgrade=false;state.wave++;state.shopCredits+=Math.floor(60+state.wave*8);spawnWave();updateUI();};
-    upgradeListEl.appendChild(div);
-  });
-  document.getElementById('upgradeOverlay').style.display='flex';
-}
-
-/* -------------------------
-   Initialization
-   ------------------------- */
+/* Init */
 function init(){
-  canvas=document.getElementById('game');ctx=canvas.getContext('2d',{alpha:false});W=canvas.width;H=canvas.height;
-  elScore=document.getElementById('score');elHp=document.getElementById('hp');elWave=document.getElementById('wave');
-  elLeft=document.getElementById('left');elHi=document.getElementById('hi');elMsg=document.getElementById('msg');
-  elCred=document.getElementById('cred');elMut=document.getElementById('mut'); shopCreditsDisplay=document.getElementById('shopCreditsDisplay');
-  ownedSummary=document.getElementById('ownedSummary');
-  shopOverlay=document.getElementById('shopOverlay');shopList=document.getElementById('shopList');
-  categoryFilter=document.getElementById('categoryFilter');searchBox=document.getElementById('searchBox');sortPriceBtn=document.getElementById('sortPrice');
-  buyMaxBtn=document.getElementById('buyMax');closeShopBtn=document.getElementById('closeShop');closeShopBottom=document.getElementById('closeShopBottom');
-  bundleStarter=document.getElementById('bundleStarter');bundleAmmo=document.getElementById('bundleAmmo');bundleBoost=document.getElementById('bundleBoost');
-  debugBox=document.getElementById('debugBox');
-
-  state.hi=parseInt(localStorage.getItem('nda_hi')||'0',10);
+  W = canvas.width; H = canvas.height;
   registerWeapons();
   state.player=new Player();
   state.weaponIndex=0;
-  state.shopCredits=4000;
+  state.shopCredits=400;
   spawnWave();
   updateUI();
   loop();
-
-  // shop events
-  document.getElementById('btnShop').addEventListener('click', ()=>openShop(false));
-  closeShopBtn.addEventListener('click', closeShop);
-  closeShopBottom.addEventListener('click', closeShop);
-  categoryFilter.addEventListener('change', renderShopItems);
-  searchBox.addEventListener('input', ()=>{ setTimeout(renderShopItems,120); });
-  sortPriceBtn.addEventListener('click', ()=>{ shopSortByPrice = !shopSortByPrice; renderShopItems(); });
-  buyMaxBtn.addEventListener('click', buyMaxAffordable);
-  setupBundles();
 }
 
-/* -------------------------
-   Input bindings
-   ------------------------- */
-function bindTouch(id,prop){const el=document.getElementById(id);if(!el)return;el.addEventListener('touchstart',e=>{e.preventDefault();touch[prop]=true});el.addEventListener('touchend',e=>{e.preventDefault();touch[prop]=false});el.addEventListener('mousedown',e=>{e.preventDefault();touch[prop]=true});el.addEventListener('mouseup',e=>{e.preventDefault();touch[prop]=false});}
-['tLeft','tRight','tUp','tDown','tShoot','tDash'].forEach(id=>{const map={tLeft:'left',tRight:'right',tUp:'up',tDown:'down',tShoot:'shoot',tDash:'dash'};bindTouch(id,map[id]);});
+/* Input */
+document.getElementById('btnRestart').onclick=()=>location.reload();
+document.getElementById('btnPause').onclick=()=>{state.paused=!state.paused;document.getElementById('btnPause').textContent=state.paused?'Resume':'Pause';};
+document.getElementById('btnShop').onclick=()=>openShop(false);
+document.getElementById('closeShop').onclick=()=>closeShop();
+document.getElementById('closeShopBottom').onclick=()=>closeShop();
+document.getElementById('btnSkills').onclick=()=>{state.shopWasPaused=state.paused;state.paused=true;skillOverlay.style.display='flex';};
+document.getElementById('closeSkills').onclick=()=>{skillOverlay.style.display='none';state.paused=state.shopWasPaused||false;};
 
-window.addEventListener('mousemove',e=>{const rect=canvas.getBoundingClientRect();const sx=canvas.width/rect.width,sy=canvas.height/rect.height;mouse.x=(e.clientX-rect.left)*sx;mouse.y=(e.clientY-rect.top)*sy;});
-canvas=document.getElementById('game');
-canvas.addEventListener('click',e=>{ensureAudio();if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();if(keys.Alt||keys.Meta){state.player.x=mouse.x;state.player.y=mouse.y;sfx('dash');}});
+function openShop(fromSecret=false){ state.shopWasPaused = state.paused; state.paused = true; shopOverlay.style.display='flex'; renderShopItems(); updateUI(); if(fromSecret) showMsg('Secret shop opened'); }
+function closeShop(){ shopOverlay.style.display='none'; state.paused = state.shopWasPaused || false; updateUI(); }
 
-window.addEventListener('keydown',e=>{
-  keys[e.key]=true;
-  // secret sequence handling
-  handleSecretKey(e.key);
-  if(e.key==='p'||e.key==='P')togglePause();
-  if(e.key==='r'||e.key==='R')restart();
-  if(e.key==='q'||e.key==='Q')switchWeapon(-1);
-  if(e.key==='e'||e.key==='E')switchWeapon(1);
-  if(e.key==='f'||e.key==='F'){state.overdrive=4000;sfx('power');}
-  if(e.key==='g'||e.key==='G'){state.timeWarp=3000;sfx('power');}
-  if(e.key===' '){e.preventDefault();keys.Space=true;}
-});
-window.addEventListener('keyup',e=>{keys[e.key]=false;if(e.key===' ')keys.Space=false;});
+function setupBundles(){
+  document.getElementById('bundleStarter').onclick = ()=>{ const cost = shopPrice(200); if(state.shopCredits>=cost){ state.shopCredits-=cost; state.shopCredits+=120; state.player.hp=Math.min(state.player.maxHp,state.player.hp+1); updateUI(); } else showMsg('Not enough credits'); };
+  document.getElementById('bundleAmmo').onclick = ()=>{ const cost = shopPrice(120); if(state.shopCredits>=cost){ state.shopCredits-=cost; state.shopCredits+=80; updateUI(); } else showMsg('Not enough credits'); };
+  document.getElementById('bundleBoost').onclick = ()=>{ const cost = shopPrice(180); if(state.shopCredits>=cost){ state.shopCredits-=cost; state.player.speed+=12; setTimeout(()=>state.player.speed-=12,15000); updateUI(); } else showMsg('Not enough credits'); };
+}
 
-/* -------------------------
-   Start on load
-   ------------------------- */
+/* Start */
 window.addEventListener('load',()=>{
-  canvas=document.getElementById('game');
   const maxW=Math.min(window.innerWidth-24,1100);
   const scale=maxW/W;
   canvas.style.width=(W*scale)+'px';
   canvas.style.height=(H*scale)+'px';
+  setupBundles();
   init();
 });
-window.addEventListener('resize',()=>{const maxW=Math.min(window.innerWidth-24,1100);const scale=maxW/W;canvas.style.width=(W*scale)+'px';canvas.style.height=(H*scale)+'px';});
 
+/* Input handlers */
+window.addEventListener('mousemove',e=>{const rect=canvas.getBoundingClientRect();const sx=canvas.width/rect.width,sy=canvas.height/rect.height;mouse.x=(e.clientX-rect.left)*sx;mouse.y=(e.clientY-rect.top)*sy;});
+window.addEventListener('keydown',e=>{keys[e.key]=true; handleSecretKey(e.key); if(e.key==='p'||e.key==='P') { state.paused=!state.paused; document.getElementById('btnPause').textContent=state.paused?'Resume':'Pause'; } if(e.key==='r'||e.key==='R') location.reload(); if(e.key==='q'||e.key==='Q') state.weaponIndex=(state.weaponIndex-1+state.weapons.length)%state.weapons.length; if(e.key==='e'||e.key==='E') state.weaponIndex=(state.weaponIndex+1)%state.weapons.length; if(e.key==='f'||e.key==='F'){state.overdrive=4000;sfx('power');} if(e.key==='g'||e.key==='G'){state.timeWarp=3000;sfx('power');} if(e.key===' '){e.preventDefault();keys.Space=true;} });
+window.addEventListener('keyup',e=>{keys[e.key]=false;if(e.key===' ')keys.Space=false;});
+
+/* End of script */
 })();
 </script>
 </body>
