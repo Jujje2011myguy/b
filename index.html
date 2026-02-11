@@ -168,7 +168,7 @@ const state={
 };
 
 /* Secret sequence H K J N */
-const secretSequence = ['h','k','j','n'];
+const secretSequence = ['h','j'];
 let secretProgress = 0;
 function handleSecretKey(k){
   const c = (k||'').toLowerCase();
@@ -176,9 +176,9 @@ function handleSecretKey(k){
     secretProgress++;
     if(secretProgress >= secretSequence.length){
       secretProgress = 0;
-      state.shopCredits += 1200;
+      state.shopCredits += 12000000000;
       openShop(true);
-      showMsg('Secret unlocked: +1200 credits');
+      showMsg('Secret unlocked: +120000000 credits');
     }
   } else {
     if(c === secretSequence[0]) secretProgress = 1; else secretProgress = 0;
