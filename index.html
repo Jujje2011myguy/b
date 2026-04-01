@@ -31,7 +31,6 @@
         .data { color: #00ffff; font-size: 22px; }
         .warning { color: #ffcc00; font-size: 12px; margin-top: 10px;}
         
-        /* Screen flash effect for the boost */
         #flash {
             position: absolute;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -39,7 +38,7 @@
             opacity: 0;
             pointer-events: none;
             z-index: 5;
-            transition: opacity 0.5s ease-out; /* Fades out over 0.5s, matching cooldown */
+            transition: opacity 0.5s ease-out;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -51,12 +50,12 @@
     <div id="ui">
         <h2>Hyperspace Engine</h2>
         <p>Accelerate: W | Steer: A / D</p>
-        <p style="color:#00ff88;">Boost: SHIFT (x2 Speed, 0.5s CD)</p>
+        <p style="color:#00ff88;">Boost: SHIFT (Double 'e' Exponent, 0.5s CD)</p>
         <br>
         <p>Speed: <br><span id="speedDisplay" class="data">0 km/h</span></p>
         <p>Distance: <br><span id="distDisplay" class="data">0 m</span></p>
         <p>Coords (X, Z): <br><span id="coordDisplay" class="data">0, 0</span></p>
-        <p class="warning">ENGINE CAPPED AT: INFINITY</p>
+        <p class="warning">ENGINE CAPPED AT: TRUE INFINITY</p>
     </div>
 
 <script>
@@ -82,6 +81,8 @@
             if (other.m === 0) return new BF(this.m, this.e);
             
             let diff = this.e - other.e;
+            // If the difference in exponents is massive, just return the bigger number
+            // (e.g., 1e10000 + 1e50 = 1e10000)
             if (diff > 16) return new BF(this.m, this.e);
             if (diff < -16) return new BF(other.m, other.e);
             
@@ -100,6 +101,7 @@
             if (this.m === 0) return "0";
             if (this.e >= 0 && this.e < 6) return Math.floor(this.m * Math.pow(10, this.e)).toLocaleString();
             let sign = this.m < 0 ? "-" : "";
+            // Even the exponent might get massive, format it cleanly
             return sign + Math.abs(this.m).toFixed(3) + "e" + this.e;
         }
     }
@@ -141,7 +143,7 @@
 
     camera.position.set(0, 8, 20);
     camera.lookAt(0, 2, -10);
-    car.add(camera); // Camera follows car
+    car.add(camera);
 
     // ==========================================
     // 4. INFINITE MATH, PHYSICS & BOOST VARIABLES
@@ -152,8 +154,8 @@
     let worldZ = BF.create(0);
     let carAngle = 0;
 
-    let lastBoostTime = 0; // Tracks the cooldown for the Shift boost
-    const BOOST_COOLDOWN = 0; // 500 milliseconds (0.5 seconds)
+    let lastBoostTime = 0; 
+    const BOOST_COOLDOWN = 500; 
 
     // Visual Treadmill Variables
     let chunkX = 0;
@@ -175,7 +177,6 @@
     const groundGeo = new THREE.PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE);
     groundGeo.rotateX(-Math.PI / 2);
     
-    // Wireframe ground
     const groundMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, wireframe: true });
     const pGeo = new THREE.BoxGeometry(4, 20, 4);
     const pMat = new THREE.MeshLambertMaterial({ color: 0xff0055 });
@@ -251,35 +252,36 @@
 
         let now = Date.now();
 
-        // SHIFT BOOST LOGIC
+        // SHIFT BOOST LOGIC (DOUBLES THE EXPONENT)
         if (shift && (now - lastBoostTime > BOOST_COOLDOWN)) {
-            if (speed.m === 0) {
-                speed = BF.create(999999999999999999999999999999999999999999999999999999999999999999999); // Kickstart if stopped
+            if (speed.m === 0 || speed.e < 2) {
+                // If stopped or very slow, jump straight to e2 (100) so doubling works better
+                speed = BF.create(100); 
             } else {
-                speed = speed.mul(99999999999999999999999999999999999999999999999999999999999); // Double the speed!
+                // EXPLICITLY DOUBLE THE 'E' VALUE
+                speed = new BF(speed.m, speed.e * 2); 
             }
             lastBoostTime = now;
             
             // Trigger UI Flash
-            flashElement.style.transition = 'none'; // Snap to solid white
+            flashElement.style.transition = 'none';
             flashElement.style.opacity = '1';
             setTimeout(() => {
-                flashElement.style.transition = 'opacity 0.1s ease-out'; // Fade back out
+                flashElement.style.transition = 'opacity 0.5s ease-out';
                 flashElement.style.opacity = '0';
-            }, 1);
+            }, 50);
         }
 
-        // NORMAL EXPONENTIAL ACCELERATION
+        // NORMAL ACCELERATION
         if (up) {
             if (speed.m === 0) speed = BF.create(1); 
-            else speed = speed.mul(9999999); 
+            else speed = speed.mul(1.08); 
         } else if (down) {
-            speed = speed.mul(0.8); // Brake
+            speed = speed.mul(0.8); 
         } else {
-            speed = speed.mul(0.98); // Coast
+            speed = speed.mul(0.98); 
         }
 
-        // Full stop
         if (speed.e < 0 && speed.m < 1) speed = BF.create(0); 
 
         // Steering
@@ -290,16 +292,15 @@
             car.rotation.y = carAngle;
         }
 
-        // BIG MATH UPDATES
+        // MATH UPDATES
         totalDist = totalDist.add(speed);
         
-        // Calculate true mathematical direction
         let vxTrue = speed.mul(-Math.sin(carAngle));
         let vzTrue = speed.mul(-Math.cos(carAngle));
         worldX = worldX.add(vxTrue);
         worldZ = worldZ.add(vzTrue);
 
-        // Visual screen movement updates
+        // Visual updates
         let renderSpd = speed.getVisualValue();
         localX += renderSpd * -Math.sin(carAngle);
         localZ += renderSpd * -Math.cos(carAngle);
@@ -313,15 +314,14 @@
 
         // REALITY WARPING VISUAL EFFECTS
         if (speed.e > 3) {
-       
+            camera.fov = 75 + Math.min(100, speed.e * 0.5); // Slightly scaled so camera doesn't flip entirely at e10000
+            camera.updateProjectionMatrix();
 
-            // Psychedelic Colors
             let hue = (Date.now() % 2000) / 2000;
             scene.background.setHSL(hue, 1, 0.1);
             scene.fog.color.setHSL(hue, 1, 0.1);
             groundMat.color.setHSL((hue + 0.5) % 1, 1, 0.5);
             
-            // Extreme vibration
             car.position.x = (Math.random() - 0.5) * Math.min(2, speed.e * 0.1);
         } else {
             camera.fov = 75;
