@@ -153,7 +153,7 @@
     let carAngle = 0;
 
     let lastBoostTime = 0; // Tracks the cooldown for the Shift boost
-    const BOOST_COOLDOWN = 500; // 500 milliseconds (0.5 seconds)
+    const BOOST_COOLDOWN = 1; // 500 milliseconds (0.5 seconds)
 
     // Visual Treadmill Variables
     let chunkX = 0;
@@ -264,9 +264,9 @@
             flashElement.style.transition = 'none'; // Snap to solid white
             flashElement.style.opacity = '1';
             setTimeout(() => {
-                flashElement.style.transition = 'opacity 0.5s ease-out'; // Fade back out
+                flashElement.style.transition = 'opacity 0.1s ease-out'; // Fade back out
                 flashElement.style.opacity = '0';
-            }, 50);
+            }, 1);
         }
 
         // NORMAL EXPONENTIAL ACCELERATION
@@ -313,9 +313,7 @@
 
         // REALITY WARPING VISUAL EFFECTS
         if (speed.e > 3) {
-            // Stretch FOV based on exponent
-            camera.fov = 75 + Math.min(100, speed.e * 2);
-            camera.updateProjectionMatrix();
+       
 
             // Psychedelic Colors
             let hue = (Date.now() % 2000) / 2000;
