@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Infinite Exponential Drive</title>
+    <title>Infinite Exponential 3D Drive</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #87CEEB; /* Sky color */
+            background-color: #000;
             font-family: 'Courier New', Courier, monospace;
         }
         #ui {
@@ -19,42 +19,43 @@
             pointer-events: none;
             color: white;
             text-shadow: 2px 2px 0px #000;
-            background: rgba(0,0,0,0.5);
-            padding: 15px;
+            background: rgba(0,0,0,0.6);
+            padding: 20px;
             border-radius: 10px;
             border: 2px solid #555;
             z-index: 10;
         }
-        h2 { margin: 0 0 10px 0; color: #ffae00; text-transform: uppercase; letter-spacing: 2px; }
+        h2 { margin: 0 0 10px 0; color: #00ffff; text-transform: uppercase; letter-spacing: 2px; }
         p { margin: 5px 0; font-size: 18px; font-weight: bold; }
-        #speedDisplay { color: #ff0055; font-size: 24px; }
-        
-        /* Loading Three.js via CDN */
+        .highlight { color: #ff0055; font-size: 24px; }
+        .distance { color: #00ff88; font-size: 24px; }
     </style>
+    <!-- Load Three.js directly via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
     <div id="ui">
-        <h2>3D Open World</h2>
+        <h2>Hyperspace Drive</h2>
         <p>Controls: WASD or Arrows</p>
-        <p>Speed: <span id="speedDisplay">0</span> (Exponential!)</p>
-        <p>Coords: X: <span id="xDisplay">0</span> | Z: <span id="zDisplay">0</span></p>
+        <p>Speed: <span id="speedDisplay" class="highlight">0</span></p>
+        <p>Distance: <span id="distDisplay" class="distance">0</span></p>
+        <p style="font-size: 14px; color: #aaa;">(No max speed. Hold W to break reality)</p>
     </div>
 
 <script>
     // --- 1. Basic Scene Setup ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87CEEB);
-    scene.fog = new THREE.Fog(0x87CEEB, 100, 1500); // Fog to hide chunk loading
-
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
+    scene.fog = new THREE.FogExp2(0x87CEEB, 0.0015);
+    scene.background = new THREE.Color(0x87CEEB);
+
     // Lighting
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.7);
     hemiLight.position.set(0, 200, 0);
     scene.add(hemiLight);
 
@@ -65,29 +66,28 @@
     // --- 2. Create the Player Car ---
     const car = new THREE.Group();
     
-    // Car Body (Red Box)
-    const bodyGeo = new THREE.BoxGeometry(4, 2, 8);
+    // Body
+    const bodyGeo = new THREE.BoxGeometry(4, 1.5, 9);
     const bodyMat = new THREE.MeshLambertMaterial({ color: 0xcc0000 });
     const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 1.5;
+    body.position.y = 1.25;
     car.add(body);
 
-    // Car Roof (Dark Box)
-    const roofGeo = new THREE.BoxGeometry(3.5, 1.5, 4);
+    // Roof
+    const roofGeo = new THREE.BoxGeometry(3.5, 1.2, 4);
     const roofMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
     const roof = new THREE.Mesh(roofGeo, roofMat);
-    roof.position.y = 3;
-    roof.position.z = -0.5;
+    roof.position.set(0, 2.6, -1);
     car.add(roof);
 
     // Wheels
-    const wheelGeo = new THREE.CylinderGeometry(1, 1, 0.5, 16);
+    const wheelGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.6, 16);
     wheelGeo.rotateZ(Math.PI / 2);
     const wheelMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
     
     const wheelPositions = [
-        [-2.2, 1, 2.5], [2.2, 1, 2.5],  // Front wheels
-        [-2.2, 1, -2.5], [2.2, 1, -2.5] // Rear wheels
+        [-2.3, 1.2, 2.5], [2.3, 1.2, 2.5],   // Front
+        [-2.3, 1.2, -2.5], [2.3, 1.2, -2.5]  // Rear
     ];
     
     wheelPositions.forEach(pos => {
@@ -98,165 +98,225 @@
 
     scene.add(car);
 
-    // Attach Camera to Car (Trailing behind)
-    const cameraOffset = new THREE.Vector3(0, 7, 15);
+    // Camera positioning
+    camera.position.set(0, 7, 18);
+    camera.lookAt(0, 2, -10);
     car.add(camera);
-    camera.position.copy(cameraOffset);
-    camera.lookAt(new THREE.Vector3(0, 2, -10));
 
-    // --- 3. Physics & Controls Variables ---
+    // --- 3. Physics & Infinite Math Variables ---
     let speed = 0;
+    let totalDistance = 0;
+    let carAngle = 0;
+
+    // FLOATING ORIGIN SYSTEM (Prevents IEEE-754 precision crash at 1e20)
+    let chunkX = 0; // Integer chunk position
+    let chunkZ = 0; // Integer chunk position
+    let localX = 0; // Float between 0 and CHUNK_SIZE
+    let localZ = 0; // Float between 0 and CHUNK_SIZE
+
+    const CHUNK_SIZE = 800;
+    const GRID_SIZE = 1; // Renders a 3x3 grid (1 chunk radius around player)
+
     const keys = {};
     window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
     window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
 
     // --- 4. Procedural Terrain Generation ---
-    const CHUNK_SIZE = 400;
-    const RENDER_RADIUS = 2; // How many chunks around the player to render
-    const activeChunks = new Map();
-
-    // Reusable geometries/materials for performance
+    const chunks = [];
+    
+    // Shared Geometries & Materials for ultimate performance
     const groundGeo = new THREE.PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE);
     groundGeo.rotateX(-Math.PI / 2);
-    const groundMat = new THREE.MeshLambertMaterial({ color: 0x2e8b57 }); // Sea green
+    const groundMat = new THREE.MeshLambertMaterial({ color: 0x2e8b57 });
 
-    const treeTrunkGeo = new THREE.CylinderGeometry(1, 1, 6);
+    const treeTrunkGeo = new THREE.CylinderGeometry(2, 2, 8);
     const treeTrunkMat = new THREE.MeshLambertMaterial({ color: 0x5c4033 });
-    const treeLeavesGeo = new THREE.ConeGeometry(4, 10, 8);
+    const treeLeavesGeo = new THREE.ConeGeometry(6, 15, 8);
     const treeLeavesMat = new THREE.MeshLambertMaterial({ color: 0x175e17 });
     
-    const rockGeo = new THREE.DodecahedronGeometry(2);
+    const rockGeo = new THREE.DodecahedronGeometry(3);
     const rockMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
 
-    // Seeded Random Function
-    function seededRandom(x, z, offset) {
-        let n = Math.sin(x * 12.9898 + z * 78.233 + offset * 45.123) * 43758.5453;
+    // Custom seeded random that doesn't break at massive numbers
+    function getSeed(x, z, offset) {
+        // Modulo limits the number so JS Math.sin doesn't output NaN at 1e20
+        let safeX = (x % 1000000) || 0; 
+        let safeZ = (z % 1000000) || 0;
+        let n = Math.sin(safeX * 12.9898 + safeZ * 78.233 + offset * 45.123) * 43758.5453;
         return n - Math.floor(n);
     }
 
-    // Build a chunk
-    function createChunk(cx, cz) {
-        const chunk = new THREE.Group();
-        chunk.position.set(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE);
-
-        // Ground Plane
-        const ground = new THREE.Mesh(groundGeo, groundMat);
-        chunk.add(ground);
-
-        // Generate Random Objects based on chunk coordinates
-        const objCount = Math.floor(seededRandom(cx, cz, 0) * 40) + 10;
-
-        for (let i = 0; i < objCount; i++) {
-            let px = (seededRandom(cx, cz, i + 1) - 0.5) * CHUNK_SIZE;
-            let pz = (seededRandom(cx, cz, i + 2) - 0.5) * CHUNK_SIZE;
-            
-            // Keep center path slightly clear so player doesn't spawn in a tree
-            if (cx === 0 && cz === 0 && Math.abs(px) < 20 && Math.abs(pz) < 20) continue;
-
-            let typeRand = seededRandom(cx, cz, i + 3);
-
-            if (typeRand < 0.6) {
-                // Tree
-                let trunk = new THREE.Mesh(treeTrunkGeo, treeTrunkMat);
-                trunk.position.set(px, 3, pz);
-                let leaves = new THREE.Mesh(treeLeavesGeo, treeLeavesMat);
-                leaves.position.set(px, 10, pz);
-                chunk.add(trunk);
-                chunk.add(leaves);
-            } else {
-                // Rock
-                let rock = new THREE.Mesh(rockGeo, rockMat);
-                let scale = seededRandom(cx, cz, i + 4) * 3 + 1;
-                rock.scale.set(scale, scale, scale);
-                rock.position.set(px, scale, pz);
-                chunk.add(rock);
-            }
-        }
-
-        scene.add(chunk);
-        return chunk;
+    // Initialize the 9 chunk containers
+    for (let i = 0; i < 9; i++) {
+        const group = new THREE.Group();
+        scene.add(group);
+        chunks.push({
+            group: group,
+            cx: null,
+            cz: null
+        });
     }
 
-    // Update Chunks based on player position
-    function updateChunks() {
-        let currentCx = Math.floor(car.position.x / CHUNK_SIZE);
-        let currentCz = Math.floor(car.position.z / CHUNK_SIZE);
+    // Update the treadmill chunks
+    function updateTreadmill() {
+        let chunkIndex = 0;
 
-        let neededChunks = [];
+        for (let dx = -GRID_SIZE; dx <= GRID_SIZE; dx++) {
+            for (let dz = -GRID_SIZE; dz <= GRID_SIZE; dz++) {
+                
+                let targetCx = chunkX + dx;
+                let targetCz = chunkZ + dz;
+                let chunkObj = chunks[chunkIndex];
 
-        // Determine which chunks should be active
-        for (let x = -RENDER_RADIUS; x <= RENDER_RADIUS; x++) {
-            for (let z = -RENDER_RADIUS; z <= RENDER_RADIUS; z++) {
-                let cx = currentCx + x;
-                let cz = currentCz + z;
-                let key = `${cx},${cz}`;
-                neededChunks.push(key);
+                // If this chunk container represents a new logical area, regenerate its objects
+                if (chunkObj.cx !== targetCx || chunkObj.cz !== targetCz) {
+                    chunkObj.cx = targetCx;
+                    chunkObj.cz = targetCz;
+                    
+                    // Clear old meshes
+                    while(chunkObj.group.children.length > 0) {
+                        chunkObj.group.remove(chunkObj.group.children[0]);
+                    }
 
-                if (!activeChunks.has(key)) {
-                    activeChunks.set(key, createChunk(cx, cz));
+                    // Always add ground
+                    const ground = new THREE.Mesh(groundGeo, groundMat);
+                    chunkObj.group.add(ground);
+
+                    // Procedurally generate objects
+                    let objCount = Math.floor(getSeed(targetCx, targetCz, 0) * 15) + 5;
+
+                    for (let i = 0; i < objCount; i++) {
+                        let px = (getSeed(targetCx, targetCz, i + 1) - 0.5) * CHUNK_SIZE;
+                        let pz = (getSeed(targetCx, targetCz, i + 2) - 0.5) * CHUNK_SIZE;
+                        
+                        // Keep the very center slightly clear so player rarely spawns in a rock
+                        if (targetCx === 0 && targetCz === 0 && Math.abs(px) < 30 && Math.abs(pz) < 30) continue;
+
+                        let typeRand = getSeed(targetCx, targetCz, i + 3);
+
+                        if (typeRand < 0.5) {
+                            let trunk = new THREE.Mesh(treeTrunkGeo, treeTrunkMat);
+                            trunk.position.set(px, 4, pz);
+                            let leaves = new THREE.Mesh(treeLeavesGeo, treeLeavesMat);
+                            leaves.position.set(px, 12, pz);
+                            chunkObj.group.add(trunk);
+                            chunkObj.group.add(leaves);
+                        } else {
+                            let rock = new THREE.Mesh(rockGeo, rockMat);
+                            let scale = getSeed(targetCx, targetCz, i + 4) * 3 + 1;
+                            rock.scale.set(scale, scale, scale);
+                            rock.position.set(px, scale * 2, pz);
+                            chunkObj.group.add(rock);
+                        }
+                    }
                 }
-            }
-        }
 
-        // Remove chunks that are too far away
-        for (let [key, chunk] of activeChunks.entries()) {
-            if (!neededChunks.includes(key)) {
-                scene.remove(chunk);
-                activeChunks.delete(key);
+                // Smoothly shift the chunk backwards/forwards based on local floating point position
+                // This creates the illusion of seamless movement!
+                chunkObj.group.position.set(
+                    (dx * CHUNK_SIZE) - localX, 
+                    0, 
+                    (dz * CHUNK_SIZE) - localZ
+                );
+
+                chunkIndex++;
             }
         }
     }
 
-    // --- 5. Main Game Loop ---
+    // --- 5. Helper Functions ---
+    // Beautifully formats massive numbers with scientific notation
+    function formatMassiveNumber(num) {
+        if (num < 10000) return Math.floor(num).toLocaleString();
+        return num.toExponential(3).replace('e+', ' x 10^');
+    }
+
+    // --- 6. Main Game Loop ---
     function animate() {
         requestAnimationFrame(animate);
 
-        // --- Physics / Controls ---
         let up = keys['w'] || keys['arrowup'];
         let down = keys['s'] || keys['arrowdown'];
         let left = keys['a'] || keys['arrowleft'];
         let right = keys['d'] || keys['arrowright'];
 
-        // Acceleration (EXPONENTIAL GROWTH)
+        // ACCELERATION (Intense Exponential Growth)
         if (up) {
-            if (speed < 0.5) speed += 0.05;      // Start linear to get moving
-            else speed *= 1.02;                  // Multiply exponentially
+            if (speed < 0.5) speed += 0.05; // Kickstart linear
+            else speed *= 1.05;             // 5% growth per frame = insanity
         } else if (down) {
-            speed -= 1;                          // Linear hard braking
+            speed -= 2; // Hard brake
         } else {
-            speed *= 0.95;                       // Coasting friction
+            speed *= 0.95; // Coast down
         }
 
-        // No max speed limit! Just prevent accidental reversing from extreme math
-        if (speed < 0 && !down) speed = 0;
+        // Cap reverse speed so the game stays focused on forward hyperspeed
+        if (speed < -50) speed = -50;
+        if (!down && speed < 0.01 && speed > -0.01) speed = 0;
 
-        // Steering
+        // Steering (Car stays at 0,0,0, but we track its logical angle)
         if (Math.abs(speed) > 0.1) {
-            // Turning is based on speed direction
-            let turnRate = 0.04;
-            let dir = speed > 0 ? 1 : -1; 
+            let turnRate = 0.05;
+            let dir = speed > 0 ? 1 : -1;
             
-            // As speed gets astronomically high, turning gets slightly harder to handle
-            let speedFactor = Math.min(Math.abs(speed) * 0.1, 1);
-
-            if (left) car.rotation.y += turnRate * dir * speedFactor;
-            if (right) car.rotation.y -= turnRate * dir * speedFactor;
+            // As you reach god-like speeds, steering becomes wildly sensitive
+            if (left) carAngle += turnRate * dir;
+            if (right) carAngle -= turnRate * dir;
+            
+            // Visually rotate the car mesh
+            car.rotation.y = carAngle;
         }
 
-        // Apply Movement (Translate in the direction the car is facing)
-        car.translateZ(-speed);
+        // --- THE FLOATING ORIGIN MATH ---
+        // Calculate velocity vectors based on angle
+        // In Three.js, negative Z is forward
+        let vx = -speed * Math.sin(carAngle);
+        let vz = -speed * Math.cos(carAngle);
 
-        // --- World Generation ---
-        updateChunks();
+        // Move the logical local position
+        localX += vx;
+        localZ += vz;
 
-        // --- UI Updates ---
-        // Formatting speed so massive exponential numbers don't break the UI layout
-        let displaySpeed = speed > 10000 ? speed.toExponential(2) : Math.floor(speed * 10);
-        document.getElementById('speedDisplay').innerText = displaySpeed;
-        document.getElementById('xDisplay').innerText = Math.floor(car.position.x);
-        document.getElementById('zDisplay').innerText = Math.floor(car.position.z);
+        // If local position exceeds chunk size, increment the massive Chunk ID 
+        // and wrap the local position. This keeps floating point errors strictly at 0!
+        let cxDiff = Math.floor(localX / CHUNK_SIZE);
+        let czDiff = Math.floor(localZ / CHUNK_SIZE);
 
-        // --- Render ---
+        chunkX += cxDiff;
+        chunkZ += czDiff;
+        
+        // Wrap local coordinates (localX will ALWAYS remain between 0 and CHUNK_SIZE)
+        localX -= cxDiff * CHUNK_SIZE;
+        localZ -= czDiff * CHUNK_SIZE;
+
+        totalDistance += Math.abs(speed);
+
+        // --- Visual Hyperspeed Effects ---
+        if (speed > 1000) {
+            // Warp the FOV based on exponent
+            let logSpeed = Math.log10(speed);
+            camera.fov = 75 + Math.min(80, logSpeed * 3);
+            camera.updateProjectionMatrix();
+
+            // Psychedelic sky/fog shift
+            let hue = (logSpeed * 0.1) % 1;
+            let psychoColor = new THREE.Color().setHSL(hue, 1.0, 0.5);
+            scene.background = psychoColor;
+            scene.fog.color = psychoColor;
+        } else {
+            camera.fov = 75;
+            camera.updateProjectionMatrix();
+            scene.background.setHex(0x87CEEB);
+            scene.fog.color.setHex(0x87CEEB);
+        }
+
+        // Render World
+        updateTreadmill();
+
+        // Update UI
+        document.getElementById('speedDisplay').innerText = formatMassiveNumber(speed) + " km/h";
+        document.getElementById('distDisplay').innerText = formatMassiveNumber(totalDistance) + " m";
+
         renderer.render(scene, camera);
     }
 
