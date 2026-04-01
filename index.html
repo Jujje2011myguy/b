@@ -254,9 +254,9 @@
         // SHIFT BOOST LOGIC
         if (shift && (now - lastBoostTime > BOOST_COOLDOWN)) {
             if (speed.m === 0) {
-                speed = BF.create(20); // Kickstart if stopped
+                speed = BF.create(999999999999999999999999999999999999999999999999999999999999999999999); // Kickstart if stopped
             } else {
-                speed = speed.mul(2000000); // Double the speed!
+                speed = speed.mul(99999999999999999999999999999999999999999999999999999999999); // Double the speed!
             }
             lastBoostTime = now;
             
