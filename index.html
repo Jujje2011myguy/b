@@ -256,7 +256,7 @@
             if (speed.m === 0) {
                 speed = BF.create(20); // Kickstart if stopped
             } else {
-                speed = speed.mul(2); // Double the speed!
+                speed = speed.mul(2000000); // Double the speed!
             }
             lastBoostTime = now;
             
@@ -272,7 +272,7 @@
         // NORMAL EXPONENTIAL ACCELERATION
         if (up) {
             if (speed.m === 0) speed = BF.create(1); 
-            else speed = speed.mul(1.08); 
+            else speed = speed.mul(9999999); 
         } else if (down) {
             speed = speed.mul(0.8); // Brake
         } else {
