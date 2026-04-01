@@ -40,12 +40,27 @@
             z-index: 5;
             transition: opacity 0.5s ease-out;
         }
+
+        #double-text {
+            position: absolute;
+            top: 30%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 60px;
+            font-weight: bold;
+            font-style: italic;
+            text-shadow: 0 0 30px #00ffff, 0 0 10px #ff0055;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
     <div id="flash"></div>
+    <div id="double-text">EXPONENT DOUBLED!</div>
 
     <div id="ui">
         <h2>Hyperspace Engine</h2>
@@ -60,7 +75,7 @@
 
 <script>
     // ==========================================
-    // 1. ABSOLUTE BIG-INT ENGINE (Bypasses JS e308 limit)
+    // 1. ABSOLUTE BIG-INT ENGINE 
     // ==========================================
     class BF {
         constructor(m, e) {
@@ -68,7 +83,6 @@
             let adjust = Math.floor(Math.log10(Math.abs(m)));
             this.m = m / Math.pow(10, adjust);
             
-            // Exponent is now a BigInt, allowing it to reach astronomical digits
             if (typeof e === 'bigint') {
                 this.e = e + BigInt(adjust);
             } else {
@@ -88,18 +102,17 @@
             
             let diff = this.e - other.e;
             
-            // If the size difference is massive, just absorb the smaller number
             if (diff > 16n) return new BF(this.m, this.e);
             if (diff < -16n) return new BF(other.m, other.e);
             
-            let diffNum = Number(diff); // Safe to cast because we know it's <= 16
+            let diffNum = Number(diff); 
             let mSum = (this.m * Math.pow(10, diffNum)) + other.m;
             return new BF(mSum, other.e);
         }
 
         getVisualValue() {
             if (this.m === 0) return 0;
-            if (this.e > 3n) return 2000; // Cap renderer translation to prevent GPU crash
+            if (this.e > 3n) return 2000; 
             if (this.e < 0n) return 0;
             return this.m * Math.pow(10, Number(this.e));
         }
@@ -111,17 +124,12 @@
             }
             
             let sign = this.m < 0 ? "-" : "";
-            let eStr = this.e.toString(); // BigInt can safely print millions of digits
+            let eStr = this.e.toString(); 
             
-            // Nested Scientific Notation: If your exponent itself is > 1,000,000
-            // Example: e(1000000) displays as e(1.00e6)
-            if (eStr.length > 6) { 
-                let eOfE = eStr.length - 1;
-                let mOfE = (Number(eStr.substring(0, 4)) / 1000).toFixed(2);
-                return sign + Math.abs(this.m).toFixed(2) + "e(" + mOfE + "e" + eOfE + ")";
-            }
+            // Explicitly format the exponent with commas so you can SEE it doubling
+            let eFormatted = eStr.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             
-            return sign + Math.abs(this.m).toFixed(2) + "e" + eStr;
+            return sign + Math.abs(this.m).toFixed(2) + "e" + eFormatted;
         }
     }
 
@@ -174,9 +182,8 @@
     let carAngle = 0;
 
     let lastBoostTime = 0; 
-    const BOOST_COOLDOWN = 10; // Rapid fire shift pressing
+    const BOOST_COOLDOWN = 150; // Milliseconds. Fast enough to spam, slow enough to see.
 
-    // Visual Treadmill Variables
     let chunkX = 0;
     let chunkZ = 0;
     let localX = 0;
@@ -258,6 +265,7 @@
     // 6. MAIN HYPER-LOOP
     // ==========================================
     const flashElement = document.getElementById('flash');
+    const doubleTextElement = document.getElementById('double-text');
 
     function animate() {
         requestAnimationFrame(animate);
@@ -275,17 +283,28 @@
             if (speed.m === 0 || speed.e < 2n) {
                 speed = BF.create(100); 
             } else {
-                // e * 2n securely manipulates the exponent via BigInt!
+                // Here is the magic: the BigInt Exponent is literally multiplied by 2!
                 speed = new BF(speed.m, speed.e * 2n); 
             }
             lastBoostTime = now;
             
+            // Screen Flash Effect
             flashElement.style.transition = 'none';
             flashElement.style.opacity = '1';
+            
+            // Giant Double Text Effect
+            doubleTextElement.style.transition = 'none';
+            doubleTextElement.style.opacity = '1';
+            doubleTextElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
+            
             setTimeout(() => {
                 flashElement.style.transition = 'opacity 0.2s ease-out';
                 flashElement.style.opacity = '0';
-            }, 30);
+                
+                doubleTextElement.style.transition = 'all 0.5s ease-out';
+                doubleTextElement.style.opacity = '0';
+                doubleTextElement.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 50);
         }
 
         // NORMAL ACCELERATION
@@ -330,9 +349,8 @@
 
         // REALITY WARPING VISUAL EFFECTS
         if (speed.e > 3n) {
-            // Cap FOV visual stretch so it doesn't flip entirely at massive BigInts
             let eNum = speed.e > 1000n ? 1000 : Number(speed.e);
-            camera.fov = 75 + Math.min(100, eNum * 0.5); 
+            camera.fov = 75 + Math.min(85, eNum * 0.5); 
             camera.updateProjectionMatrix();
 
             let hue = (Date.now() % 2000) / 2000;
