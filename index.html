@@ -243,7 +243,7 @@
         // ACCELERATION (Intense Exponential Growth)
         if (up) {
             if (speed < 0.5) speed += 0.05; // Kickstart linear
-            else speed *= 1.4;             // 5% growth per frame = insanity
+            else speed *= 4;             // 5% growth per frame = insanity
         } else if (down) {
             speed -= 2; // Hard brake
         } else {
