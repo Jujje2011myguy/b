@@ -1,559 +1,291 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Neon Dash Arena — Full Build</title>
-<style>
-:root{--bg:#050814;--panel:#0b1020;--accent:#4ee1a1;--accent2:#7ad7ff;--muted:#9aa7bf;--danger:#ff6b6b;}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:radial-gradient(circle at top,#101632,#050814);color:#e6eef8;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif}
-#wrap{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px}
-header{width:100%;max-width:1200px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px}
-h1{font-size:18px;color:var(--accent);letter-spacing:.08em}
-.panel{background:linear-gradient(180deg,var(--panel),#050814);border-radius:10px;padding:6px 10px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.6)}
-.info{display:flex;gap:10px;font-size:12px;color:var(--muted);align-items:center}
-.sep{width:1px;height:22px;background:rgba(255,255,255,.06)}
-.big{font-size:16px;color:#fff}
-.btn{border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:var(--muted);padding:5px 9px;font-size:12px;font-weight:600;cursor:pointer}
-.btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;color:#041814}
-main{position:relative;width:100%;max-width:1100px}
-canvas{background:radial-gradient(circle at top,#151b3a,#050814);border-radius:12px;display:block;width:100%;height:auto;box-shadow:0 12px 40px rgba(0,0,0,.8)}
-#hud{position:absolute;left:10px;top:10px;font-size:12px;color:#dff7ee;text-shadow:0 1px 0 #000}
-#waveInfo{position:absolute;right:10px;top:10px;font-size:12px;color:var(--muted)}
-#msg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:20px;color:#fff;text-shadow:0 2px 6px #000;pointer-events:none;text-align:center;max-width:80%}
-footer{margin-top:6px;font-size:11px;color:var(--muted)}
-#shopOverlay,#upgradeOverlay,#skillOverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
-.card{background:#050814;border-radius:12px;padding:14px 16px;max-width:980px;width:96%;box-shadow:0 10px 40px rgba(0,0,0,.8);color:#e6eef8}
-.shop-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:520px;overflow:auto;padding-right:6px}
-.shop-item{border-radius:8px;border:1px solid rgba(255,255,255,.06);padding:8px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));display:flex;flex-direction:column;gap:6px}
-.qty{width:64px;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.25);color:#fff}
-.buy-btn{padding:6px 8px;border-radius:6px;background:var(--accent);color:#041814;border:none;cursor:pointer}
-.close-x{background:transparent;border:1px solid rgba(255,255,255,.06);color:var(--muted);padding:6px;border-radius:6px;cursor:pointer}
-#debugBox{position:fixed;left:8px;bottom:8px;background:rgba(0,0,0,0.6);color:#fff;padding:6px;border-radius:8px;font-size:11px;max-width:260px;z-index:70;display:none}
-.fire-rate{font-weight:700;color:var(--accent2);margin-left:8px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Retro Drive</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            text-shadow: 2px 2px 0px #000;
+        }
+        h2 { margin: 0 0 10px 0; color: #ff0055; text-transform: uppercase; letter-spacing: 2px; }
+        p { margin: 5px 0; font-size: 18px; font-weight: bold; }
+    </style>
 </head>
 <body>
-<div id="wrap">
-  <header>
-    <div class="panel">
-      <h1>Neon Dash Arena — Full Build</h1>
-      <div class="sep"></div>
-      <div class="info">
-        <div>Wave: <span id="wave" class="big">1</span></div>
-        <div>Mode: <span id="mode" class="big">Endless</span></div>
-        <div class="sep"></div>
-        <div>Mutation: <span id="mut" class="big">None</span></div>
-      </div>
-    </div>
-    <div class="panel">
-      <div class="info">
-        <div>Score: <span id="score" class="big">0</span></div>
-        <div class="sep"></div>
-        <div>HP: <span id="hp" class="big">5</span></div>
-        <div class="sep"></div>
-        <div>Highscore: <span id="hi" class="big">0</span></div>
-        <div class="sep"></div>
-        <div>Credits: <span id="cred" class="big">0</span></div>
-      </div>
-    </div>
-    <div class="panel">
-      <button id="btnRestart" class="btn primary">Restart</button>
-      <button id="btnPause" class="btn">Pause</button>
-      <button id="btnShop" class="btn">Shop</button>
-      <button id="btnSkills" class="btn">Skill Tree</button>
-    </div>
-  </header>
 
-  <main>
-    <canvas id="game" width="1100" height="700"></canvas>
-    <div id="hud">Move: WASD / Arrows • Shoot: Space • Switch Weapon: Q/E • Dash: Shift • Overdrive: F • Time Warp: G</div>
-    <div id="waveInfo">Enemies left: <span id="left">0</span></div>
-    <div id="msg"></div>
-  </main>
-
-  <footer>Unlimited bullets, unlimited multiplier, secret H K J N opens shop with bonus credits.</footer>
-</div>
-
-<div id="shopOverlay" aria-hidden="true">
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div><h3 style="margin:0">Shop</h3><div style="color:#9aa7bf;font-size:12px">Game is paused while shop is open</div></div>
-      <div><button id="closeShop" class="close-x">Resume</button></div>
+    <div id="ui">
+        <h2>Retro Drive</h2>
+        <p>Controls: WASD or Arrow Keys</p>
+        <p>Speed: <span id="speedDisplay">0</span> km/h</p>
+        <p>Distance: <span id="distDisplay">0</span> m</p>
     </div>
-    <div style="margin-top:10px;display:flex;gap:12px">
-      <div style="width:320px">
-        <div>Credits: <span id="shopCreditsDisplay" class="big">0</span></div>
-        <div style="margin-top:8px"><input id="searchBox" placeholder="Search items" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.2);color:#fff" /></div>
-        <div style="margin-top:8px">Owned: <span id="ownedSummary" class="big">none</span></div>
-        <div style="margin-top:12px">
-          <button id="bundleStarter" class="btn">Starter Pack</button>
-          <button id="bundleAmmo" class="btn">Ammo Pack</button>
-          <button id="bundleBoost" class="btn">Boost Pack</button>
-        </div>
-      </div>
-      <div style="flex:1">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="font-weight:700">Items</div>
-          <div style="color:#9aa7bf;font-size:12px">Buy items; shop stays open after purchase</div>
-        </div>
-        <div id="shopList" class="shop-list" style="margin-top:8px"></div>
-        <div style="display:flex;justify-content:flex-end;margin-top:8px">
-          <button id="closeShopBottom" class="btn">Close Shop</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<div id="upgradeOverlay"><div class="card"><h3>Choose an upgrade</h3><div id="upgradeList" style="margin-top:8px"></div></div></div>
-<div id="skillOverlay"><div class="card"><h3>Skill Tree</h3><div id="skillList" style="margin-top:8px"></div><div style="margin-top:8px"><button id="closeSkills" class="btn">Close</button></div></div></div>
-
-<div id="debugBox"></div>
+    <canvas id="gameCanvas"></canvas>
 
 <script>
-/* Full game JS (unbounded multi, no bullets cap, secret H K J N) */
-(function(){
-'use strict';
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
 
-/* Utilities */
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const rand=(a,b)=>Math.random()*(b-a)+a;
-const rndInt=(a,b)=>Math.floor(rand(a,b+1));
-const dist=(x1,y1,x2,y2)=>Math.hypot(x2-x1,y2-y1);
-const now=()=>performance.now();
-
-/* DOM refs */
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d',{alpha:false});
-let W = canvas.width, H = canvas.height;
-const elScore = document.getElementById('score');
-const elHp = document.getElementById('hp');
-const elWave = document.getElementById('wave');
-const elLeft = document.getElementById('left');
-const elHi = document.getElementById('hi');
-const elMsg = document.getElementById('msg');
-const elCred = document.getElementById('cred');
-const elMut = document.getElementById('mut');
-const shopOverlay = document.getElementById('shopOverlay');
-const shopList = document.getElementById('shopList');
-const shopCreditsDisplay = document.getElementById('shopCreditsDisplay');
-const ownedSummary = document.getElementById('ownedSummary');
-const upgradeOverlay = document.getElementById('upgradeOverlay');
-const upgradeList = document.getElementById('upgradeList');
-const skillOverlay = document.getElementById('skillOverlay');
-const skillList = document.getElementById('skillList');
-const debugBox = document.getElementById('debugBox');
-
-/* Input */
-const keys={}, touch={left:false,right:false,up:false,down:false,shoot:false,dash:false};
-const mouse={x:0,y:0};
-
-/* Audio stub */
-let audioCtx=null,masterGain=null;
-function ensureAudio(){ if(audioCtx) return; try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); masterGain=audioCtx.createGain(); masterGain.gain.value=0.9; masterGain.connect(audioCtx.destination); }catch(e){console.warn('Audio disabled',e);} }
-function sfx(type){ if(!audioCtx) return; const t=audioCtx.currentTime; const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type='square'; if(type==='shoot'){o.frequency.setValueAtTime(880,t);g.gain.setValueAtTime(0.06,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);} else if(type==='shotgun'){o.frequency.setValueAtTime(520,t);g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);} else if(type==='rail'){o.frequency.setValueAtTime(220,t);g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);} else if(type==='missile'){o.frequency.setValueAtTime(320,t);g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.28);} else if(type==='explode'){o.frequency.setValueAtTime(120,t);g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.4);} else if(type==='dash'){o.frequency.setValueAtTime(1200,t);g.gain.setValueAtTime(0.04,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);} else if(type==='power'){o.frequency.setValueAtTime(1400,t);g.gain.setValueAtTime(0.06,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);} o.connect(g); g.connect(masterGain||audioCtx.destination); o.start(t); o.stop(t+0.5); }
-
-/* State */
-const state={
-  running:true,paused:false,time:now(),dt:0,
-  score:0,hi:0,wave:1,mode:'Endless',
-  enemies:[],bullets:[],eBullets:[],particles:[],pickups:[],
-  player:null,enemiesLeft:0,inUpgrade:false,
-  shopCredits:400,difficulty:1,boss:null,
-  weapons:[],weaponIndex:0,skills:{},permanent:{hp:0,damage:0,move:0,fire:0},
-  mutation:'None',mutLevel:0,overdrive:0,timeWarp:0,
-  shopWasPaused:false, owned:{}, pierceBuff:0, reviveCount:0, rerollNext:false
-};
-
-/* Secret sequence H K J N */
-const secretSequence = ['h','j'];
-let secretProgress = 0;
-function handleSecretKey(k){
-  const c = (k||'').toLowerCase();
-  if(c === secretSequence[secretProgress]){
-    secretProgress++;
-    if(secretProgress >= secretSequence.length){
-      secretProgress = 0;
-      state.shopCredits += 12000000000;
-      openShop(true);
-      showMsg('Secret unlocked: +120000000 credits');
+    // Resize canvas to fit screen
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
     }
-  } else {
-    if(c === secretSequence[0]) secretProgress = 1; else secretProgress = 0;
-  }
-}
+    window.addEventListener('resize', resize);
+    resize();
 
-/* Helpers */
-function showMsg(t){ if(elMsg) elMsg.textContent = t; setTimeout(()=>{ if(elMsg && elMsg.textContent === t) elMsg.textContent = ''; }, 2200); }
-function showDebug(msg){ debugBox.style.display='block'; debugBox.textContent = msg; console.error(msg); }
-function clearDebug(){ debugBox.style.display='none'; }
+    // --- Game Variables ---
+    const FOV = 100;
+    const CAMERA_HEIGHT = 1200;
+    const DRAW_DISTANCE = 300;     // How many segments to draw forward
+    const SEGMENT_LENGTH = 200;    // Z-length of each road segment
+    const ROAD_WIDTH = 2000;       // Width of the road
 
-/* Entities */
-class Particle{constructor(x,y,color,life=600){this.x=x;this.y=y;this.vx=rand(-80,80);this.vy=rand(-80,80);this.color=color;this.life=life;this.age=0;}update(dt){this.x+=this.vx*dt;this.y+=this.vy*dt;this.age+=dt*1000;}draw(){const t=1-(this.age/this.life);if(t<=0)return;ctx.globalAlpha=t;ctx.fillStyle=this.color;ctx.beginPath();ctx.arc(this.x,this.y,2*t*3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}}
-class Bullet{constructor(x,y,vx,vy,color,owner='e',r=4){this.x=x;this.y=y;this.vx=vx;this.vy=vy;this.color=color;this.owner=owner;this.r=r;this.age=0;this.homing=false;this.pierce=0;this.gravity=false;}update(dt){if(this.homing&&this.owner==='p'){let nearest=null,nd=99999;for(const e of state.enemies){const d=dist(this.x,this.y,e.x,e.y);if(d<nd){nd=d;nearest=e;}}if(nearest){const a=Math.atan2(nearest.y-this.y,nearest.x-this.x);const s=Math.hypot(this.vx,this.vy);this.vx+=(Math.cos(a)*s-this.vx)*0.12;this.vy+=(Math.sin(a)*s-this.vy)*0.12;}}this.x+=this.vx*dt;this.y+=this.vy*dt;this.age+=dt*1000;}draw(){ctx.fillStyle=this.color;ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fill();}}
-class Homing extends Bullet{constructor(x,y,s,color){super(x,y,0,-s,color,'p',6);this.homing=true;}}
-class Enemy{constructor(x,y,type=0){this.x=x;this.y=y;this.type=type;this.r=type===0?12:type===1?16:type===2?10:type===3?18:14;this.hp=type===0?2:type===1?5:type===2?1:type===3?8:3;this.speed=type===0?120:type===1?80:type===2?220:type===3?60:0;this.color=type===0?'#ff6b6b':type===1?'#ffb86b':type===2?'#ffd166':type===3?'#7ad7ff':'#ff9fb0';this.shootT=rand(800,1600);this.phase=Math.random()*Math.PI*2;this.shield=type===3?3:0;this.elite=false;}update(dt){const p=state.player;if(this.type===4){this.shootT-=dt*1000;if(this.shootT<=0){this.shootT=rand(900,1600);this.shoot()}return;}if(this.type===2){const a=Math.atan2(p.y-this.y,p.x-this.x);const base=this.speed*(1+(state.difficulty-1)*0.15);this.x+=Math.cos(a)*base*dt;this.y+=Math.sin(a)*base*dt;}else{this.phase+=dt*2;const a=Math.atan2(p.y-this.y,p.x-this.x);const base=this.speed*(1+(state.difficulty-1)*0.12);this.x+=Math.cos(a)*base*dt+Math.cos(this.phase)*30*dt;this.y+=Math.sin(a)*base*dt+Math.sin(this.phase)*30*dt;}this.shootT-=dt*1000;if(this.shootT<=0){this.shootT=rand(900,2000);this.shoot();}}shoot(){const p=state.player;if(this.type===1||this.type===4){const a=Math.atan2(p.y-this.y,p.x-this.x);const s=260;state.eBullets.push(new Bullet(this.x,this.y,Math.cos(a)*s,Math.sin(a)*s,'#ffd6d6','e',6));}else if(this.type===0){if(Math.random()<0.2){const a=Math.atan2(p.y-this.y,p.x-this.x);const s=180;state.eBullets.push(new Bullet(this.x,this.y,Math.cos(a)*s,Math.sin(a)*s,'#ffd6d6','e',5));}}}draw(){ctx.save();ctx.translate(this.x,this.y);ctx.fillStyle='rgba(255,107,107,0.12)';ctx.beginPath();ctx.arc(0,0,this.r*1.8,0,Math.PI*2);ctx.fill();ctx.fillStyle=this.color;ctx.beginPath();ctx.arc(0,0,this.r,0,Math.PI*2);ctx.fill();if(this.shield>0){ctx.strokeStyle='rgba(122,215,255,0.7)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,this.r+4,0,Math.PI*2);ctx.stroke();}ctx.restore();}}
-class Boss{constructor(){this.x=W/2;this.y=-120;this.r=60;this.hp=260+state.wave*10;this.maxHp=this.hp;this.phase=0;this.t=0;}update(dt){if(this.y<140){this.y+=60*dt;return;}this.t+=dt*1000;if(this.hp<this.maxHp*0.6&&this.phase<1){this.phase=1;sfx('power');}if(this.hp<this.maxHp*0.3&&this.phase<2){this.phase=2;sfx('power');}if(this.phase===0)this.x=W/2+Math.sin(this.t/600)*180;else if(this.phase===1)this.x=W/2+Math.sin(this.t/400)*260;else this.x=W/2+Math.sin(this.t/200)*320;if(this.t>(this.phase===0?900:this.phase===1?700:450)){this.t=0;this.attack();}}attack(){if(this.phase===0){const c=8;for(let i=0;i<c;i++){const a=(i/(c-1)-0.5)*Math.PI*0.9;const s=220;state.eBullets.push(new Bullet(this.x+Math.sin(a)*20,this.y+30,Math.sin(a)*s,Math.cos(a)*s,'#ffd6d6','e',6));}}else if(this.phase===1){const c=16;for(let i=0;i<c;i++){const a=(now()/1000)+i*0.4;const s=180;state.eBullets.push(new Bullet(this.x+Math.cos(a)*30,this.y+Math.sin(a)*30,Math.cos(a)*s,Math.sin(a)*s,'#ffd6d6','e',5));}}else{for(let i=0;i<28;i++){const a=rand(0,Math.PI*2);const s=300;state.eBullets.push(new Bullet(this.x+Math.cos(a)*40,this.y+Math.sin(a)*40,Math.cos(a)*s,Math.sin(a)*s,'#ffd6d6','e',5));}}sfx('rail');}draw(){ctx.save();ctx.translate(this.x,this.y);ctx.fillStyle='#ff9fb0';ctx.beginPath();ctx.arc(0,0,this.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff6b6b';ctx.beginPath();ctx.arc(0,0,this.r*0.6,0,Math.PI*2);ctx.fill();ctx.restore();const w=360,h=10,x=W/2-w/2,y=18;ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(x,y,w,h);ctx.fillStyle='#ff6b6b';ctx.fillRect(x,y,w*(this.hp/this.maxHp),h);}}
-class Pickup{constructor(x,y,type,amount){this.x=x;this.y=y;this.type=type;this.amount=amount;this.r=8;this.age=0;}update(dt){this.age+=dt*1000;}draw(){ctx.fillStyle=this.type==='credit'?'#ffd166':this.type==='hp'?'#4ee1a1':'#7ad7ff';ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fill();}}
-class Player{constructor(){this.x=W/2;this.y=H/2;this.r=14;this.speed=260+state.permanent.move;this.hp=5+state.permanent.hp;this.maxHp=this.hp;this.cool=0;this.baseCool=Math.max(0,220-state.permanent.fire);this.bulletSpeed=420;this.multi=1;this.spread=0;this.inv=0;this.dashCooldown=0;this.shield=0;this.orbiters=[];this.charge=0;}update(dt){let vx=0,vy=0;if(keys.a||keys.ArrowLeft||touch.left)vx-=1;if(keys.d||keys.ArrowRight||touch.right)vx+=1;if(keys.w||keys.ArrowUp||touch.up)vy-=1;if(keys.s||keys.ArrowDown||touch.down)vy+=1;const len=Math.hypot(vx,vy)||1;let speed=this.speed;if(state.timeWarp>0)speed*=0.7;this.x+=(vx/len)*speed*dt;this.y+=(vy/len)*speed*dt;this.x=clamp(this.x,this.r+8,W-this.r-8);this.y=clamp(this.y,this.r+8,H-this.r-8);this.cool-=dt*1000;let fireRateMult=1;if(state.overdrive>0)fireRateMult=0.4;if((keys[' ']||keys.Space||touch.shoot)&&this.cool<=0){fireWeapon(this);this.cool=this.baseCool*fireRateMult;}this.dashCooldown-=dt*1000;if((keys.Shift||touch.dash)&&this.dashCooldown<=0){this.dash();this.dashCooldown=1200;}if(this.inv>0)this.inv-=dt*1000;this.orbiters.forEach((o,i)=>{const a=(now()/200+i*1.2)*0.002;const tx=this.x+Math.cos(a)*(this.r+18);const ty=this.y+Math.sin(a)*(this.r+18);o.x+=(tx-o.x)*0.2;o.y+=(ty-o.y)*0.2;});}dash(){let dx=0,dy=-1;if(keys.a||keys.ArrowLeft)dx=-1;if(keys.d||keys.ArrowRight)dx=1;if(keys.w||keys.ArrowUp)dy=-1;if(keys.s||keys.ArrowDown)dy=1;if(dx===0&&dy===0){dx=mouse.x-this.x;dy=mouse.y-this.y;}const len=Math.hypot(dx,dy)||1;const distDash=160;this.x+=dx/len*distDash;this.y+=dy/len*distDash;this.inv=200;for(let i=0;i<12;i++)state.particles.push(new Particle(this.x,this.y,'#4ee1a1',rand(200,600)));sfx('dash');}draw(){ctx.save();ctx.translate(this.x,this.y);ctx.fillStyle=this.inv>0?'#bfffe8':'#4ee1a1';ctx.beginPath();ctx.arc(0,0,this.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#041814';ctx.fillRect(-5,-5,4,4);ctx.fillRect(1,-5,4,4);ctx.fillRect(-5,1,4,4);ctx.fillRect(1,1,4,4);ctx.restore();this.orbiters.forEach(o=>{ctx.fillStyle='#7ad7ff';ctx.beginPath();ctx.arc(o.x,o.y,6,0,Math.PI*2);ctx.fill();});if(this.shield>0){ctx.strokeStyle='rgba(122,215,255,0.6)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(this.x,this.y,this.r+8,0,Math.PI*2);ctx.stroke();}}}
+    let position = 0; // Forward position (Z)
+    let playerX = 0;  // Left/Right position (X)
+    let speed = 0;
+    
+    const maxSpeed = 350;
+    const accel = 2;
+    const breakPower = 5;
+    const decel = 1;
+    const turnSpeed = 60;
 
-/* Weapons */
-function fireWeapon(player){const w=state.weapons[state.weaponIndex];if(!w)return;w.fire(player);}
-function registerWeapons(){
-  state.weapons=[];
-  state.weapons.push({
-    id:'blaster',name:'Blaster',fire:(p)=>{
-      const s=p.bulletSpeed;
-      const shots=Math.max(1,p.multi||1);
-      const spread=(p.spread||0)*0.5;
-      for(let i=0;i<shots;i++){
-        const offset=(i-(shots-1)/2)*spread;
-        const a=-Math.PI/2+offset;
-        const b=new Bullet(p.x,p.y-10,Math.cos(a)*s,Math.sin(a)*s,'#7ad7ff','p');
-        if(state.pierceBuff>0){ b.pierce += state.pierceBuff; }
-        state.bullets.push(b);
-      }
-      sfx('shoot');
+    // Input state
+    const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false };
+
+    window.addEventListener('keydown', (e) => keys[e.key] = true);
+    window.addEventListener('keyup', (e) => keys[e.key] = false);
+
+    // --- Procedural Generation Functions ---
+    // Uses sine waves based on the Z position to create endless variations
+    function getCurve(z) {
+        return Math.sin(z / 15000) * 2.5 + Math.cos(z / 5000) * 1.5;
     }
-  });
-  state.weapons.push({
-    id:'shotgun',name:'Shotgun',fire:(p)=>{
-      const baseCount=5;
-      const extra=Math.max(0,(p.multi||1)-1);
-      const n=baseCount+extra;
-      const spread=0.5+(p.spread||0);
-      for(let i=0;i<n;i++){
-        const a=-Math.PI/2+(i-(n-1)/2)*spread;
-        const s=p.bulletSpeed*0.85;
-        state.bullets.push(new Bullet(p.x,p.y,Math.cos(a)*s,Math.sin(a)*s,'#ffd6a6','p'));
-      }
-      sfx('shotgun');
+
+    function getHill(z) {
+        return Math.sin(z / 8000) * 1200 + Math.cos(z / 4000) * 600;
     }
-  });
-  state.weapons.push({
-    id:'rail',name:'Railgun',fire:(p)=>{
-      const len=700;const steps=24;
-      for(let i=1;i<=steps;i++){const t=i/steps;state.particles.push(new Particle(p.x,p.y-t*len,'#ff6b6b',rand(80,220)));}
-      const shots=Math.max(1,p.multi||1);
-      for(let sI=0;sI<shots;sI++){
-        for(let i=state.enemies.length-1;i>=0;i--){
-          const e=state.enemies[i];
-          if(e.y<p.y&&Math.abs(e.x-p.x)<24+sI*4){e.hp-=3+(state.permanent.damage||0);if(e.hp<=0)killEnemy(i,e);}
+
+    // Helper to draw a 4-point polygon (used for road segments)
+    function drawQuad(color, x1, y1, w1, x2, y2, w2) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x1 - w1, y1);
+        ctx.lineTo(x2 - w2, y2);
+        ctx.lineTo(x2 + w2, y2);
+        ctx.lineTo(x1 + w1, y1);
+        ctx.fill();
+    }
+
+    // --- Game Logic Update ---
+    function update() {
+        let up = keys.ArrowUp || keys.w;
+        let down = keys.ArrowDown || keys.s;
+        let left = keys.ArrowLeft || keys.a;
+        let right = keys.ArrowRight || keys.d;
+
+        // Acceleration / Braking
+        if (up) speed += accel;
+        else if (down) speed -= breakPower;
+        else speed -= decel;
+
+        // Cap max and min speed
+        speed = Math.max(0, Math.min(speed, maxSpeed));
+
+        // Steering
+        let speedPercent = speed / maxSpeed;
+        if (left) playerX -= turnSpeed * speedPercent;
+        if (right) playerX += turnSpeed * speedPercent;
+
+        // Centrifugal force (pushes you off the road on curves)
+        let currentCurve = getCurve(position);
+        playerX -= currentCurve * speedPercent * 30;
+
+        // Off-road logic (slow down if player drives onto the grass)
+        const limitX = ROAD_WIDTH * 1.2;
+        if (playerX < -limitX || playerX > limitX) {
+            speed = Math.min(speed, maxSpeed * 0.4); // Grass friction
         }
-      }
-      sfx('rail');
+
+        // Hard boundary so player can't drive off into the void entirely
+        playerX = Math.max(-ROAD_WIDTH * 3, Math.min(playerX, ROAD_WIDTH * 3));
+
+        // Move forward
+        position += speed * 15;
+
+        // Update UI
+        document.getElementById('speedDisplay').innerText = Math.floor(speed);
+        document.getElementById('distDisplay').innerText = Math.floor(position / 1000);
     }
-  });
-  state.weapons.push({
-    id:'homing',name:'Homing',fire:(p)=>{
-      const shots=Math.max(1,p.multi||1);
-      for(let i=0;i<shots;i++){state.bullets.push(new Homing(p.x+rand(-6,6),p.y-8,200,'#ffb86b'));}
-      sfx('missile');
+
+    // --- Rendering ---
+    function render() {
+        // Clear screen / Draw Sky
+        ctx.fillStyle = '#87CEEB'; // Sky blue
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Ground horizon baseline
+        ctx.fillStyle = '#10aa10';
+        ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
+
+        let startSegment = Math.floor(position / SEGMENT_LENGTH);
+        let camZ = position;
+        let camY = getHill(camZ) + CAMERA_HEIGHT;
+
+        let dx = 0;   // Curve accumulator
+        let ddx = 0;  // Double curve accumulator for smooth bends
+
+        let segmentsToDraw = [];
+
+        // 1. Calculate 3D to 2D projections from front to back
+        for (let i = 0; i < DRAW_DISTANCE; i++) {
+            let segmentIndex = startSegment + i;
+            let worldZ = segmentIndex * SEGMENT_LENGTH;
+            let worldY = getHill(worldZ);
+            let curve = getCurve(worldZ);
+
+            dx += curve;
+            ddx += dx; 
+
+            // Prevent rendering things behind the camera
+            let dz = worldZ - camZ;
+            if (dz <= 10) continue; 
+
+            let scale = FOV / dz;
+            let projX = canvas.width / 2 + ((ddx - playerX) * scale);
+            let projY = canvas.height / 2 + ((worldY - camY) * scale);
+            let projW = ROAD_WIDTH * scale;
+
+            segmentsToDraw.push({
+                x: projX, 
+                y: projY, 
+                w: projW, 
+                index: segmentIndex
+            });
+        }
+
+        // 2. Draw segments from Back to Front (Painter's Algorithm)
+        for (let i = segmentsToDraw.length - 1; i > 0; i--) {
+            let p1 = segmentsToDraw[i];     // Further away
+            let p2 = segmentsToDraw[i - 1]; // Closer
+
+            // Determine colors to create checkered effect of motion
+            let isDark = (p1.index % 6) < 3;
+            let grassColor = isDark ? '#10aa10' : '#009a00';
+            let rumbleColor = isDark ? '#ffffff' : '#ff0000';
+            let roadColor = isDark ? '#666666' : '#606060';
+            let lineBorderColor = isDark ? '#ffffff' : '#606060';
+
+            // Draw Grass (fills the width of screen)
+            drawQuad(grassColor, canvas.width/2, p1.y, canvas.width, canvas.width/2, p2.y, canvas.width);
+
+            // Draw Rumble strips (curbs)
+            drawQuad(rumbleColor, p1.x, p1.y, p1.w * 1.15, p2.x, p2.y, p2.w * 1.15);
+
+            // Draw Road
+            drawQuad(roadColor, p1.x, p1.y, p1.w, p2.x, p2.y, p2.w);
+
+            // Draw Center dashed line
+            drawQuad(lineBorderColor, p1.x, p1.y, p1.w * 0.05, p2.x, p2.y, p2.w * 0.05);
+        }
+
+        drawPlayerCar();
     }
-  });
-  state.weapons.push({
-    id:'flame',name:'Flamethrower',fire:(p)=>{
-      const base=6;const shots=base+Math.max(0,(p.multi||1)-1)*3;
-      for(let i=0;i<shots;i++){const a=-Math.PI/2+rand(-0.45,0.45);const s=p.bulletSpeed*0.7;state.bullets.push(new Bullet(p.x,p.y,Math.cos(a)*s,Math.sin(a)*s,'#ff9f43','p',4));}
-      sfx('shotgun');
+
+    // Draws a pseudo-3D car using simple 2D shapes
+    function drawPlayerCar() {
+        let carW = 180;
+        let carH = 70;
+        let carX = canvas.width / 2 - carW / 2;
+        
+        // Add a slight bounce when driving
+        let bounce = (speed > 10) ? (Math.random() * 4 - 2) : 0;
+        
+        // Tilt the car based on steering
+        let tilt = 0;
+        if (keys.ArrowLeft || keys.a) tilt = -5;
+        if (keys.ArrowRight || keys.d) tilt = 5;
+
+        let carY = canvas.height - carH - 30 + bounce;
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath();
+        ctx.ellipse(canvas.width / 2, carY + carH + 10, carW / 1.5, 15, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Rear Tires
+        ctx.fillStyle = '#111';
+        ctx.fillRect(carX - 10, carY + 30 + tilt, 35, 45); // Left tire
+        ctx.fillRect(carX + carW - 25, carY + 30 - tilt, 35, 45); // Right tire
+
+        // Tail pipes
+        ctx.fillStyle = '#444';
+        ctx.fillRect(carX + 20, carY + carH, 15, 10);
+        ctx.fillRect(carX + carW - 35, carY + carH, 15, 10);
+
+        // Car Body (Red shape)
+        ctx.fillStyle = '#cc0000';
+        ctx.beginPath();
+        ctx.moveTo(carX + 10, carY + carH + tilt);
+        ctx.lineTo(carX - 15, carY + 40 + tilt);
+        ctx.lineTo(carX + 30, carY + tilt);
+        ctx.lineTo(carX + carW - 30, carY - tilt);
+        ctx.lineTo(carX + carW + 15, carY + 40 - tilt);
+        ctx.lineTo(carX + carW - 10, carY + carH - tilt);
+        ctx.fill();
+
+        // License Plate
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(carX + carW/2 - 20, carY + carH - 15, 40, 15);
+        ctx.fillStyle = '#000';
+        ctx.font = '10px Arial';
+        ctx.fillText("HTML5", carX + carW/2 - 16, carY + carH - 4);
+
+        // Tail Lights
+        ctx.fillStyle = (speed > 0 && (keys.ArrowDown || keys.s)) ? '#ffaaaa' : '#990000'; // Light up when braking
+        ctx.fillRect(carX - 5, carY + 45 + tilt, 25, 10);
+        ctx.fillRect(carX + carW - 20, carY + 45 - tilt, 25, 10);
+
+        // Rear Windshield
+        ctx.fillStyle = '#222';
+        ctx.beginPath();
+        ctx.moveTo(carX + 35, carY + 5 + tilt);
+        ctx.lineTo(carX + 15, carY + 30 + tilt);
+        ctx.lineTo(carX + carW - 15, carY + 30 - tilt);
+        ctx.lineTo(carX + carW - 35, carY + 5 - tilt);
+        ctx.fill();
     }
-  });
-  state.weapons.push({
-    id:'gravity',name:'Gravity Orb',fire:(p)=>{
-      const shots=Math.max(1,p.multi||1);
-      for(let i=0;i<shots;i++){const b=new Bullet(p.x+rand(-6,6),p.y-10,0,-160,'#7ad7ff','p',10);b.gravity=true;state.bullets.push(b);}
-      sfx('power');
+
+    // --- Main Game Loop ---
+    function loop() {
+        update();
+        render();
+        requestAnimationFrame(loop);
     }
-  });
-}
 
-/* Spawning */
-function spawnWave(){
-  state.enemies.length=0;state.eBullets.length=0;state.bullets.length=0;state.pickups.length=0;state.particles.length=0;state.boss=null;
-  state.difficulty=1+(state.wave-1)*0.15;
-  if(state.wave%5===0){state.boss=new Boss();state.enemiesLeft=1;}
-  else{
-    const count=6+Math.floor(state.wave*1.8);
-    for(let i=0;i<count;i++){
-      const edge=rndInt(0,3);let x,y;
-      if(edge===0){x=rand(0,W);y=-20;}else if(edge===1){x=W+20;y=rand(0,H);}else if(edge===2){x=rand(0,W);y=H+20;}else{x=-20;y=rand(0,H);}
-      const r=Math.random();let type=0;
-      if(r<0.15)type=1;else if(r<0.3)type=2;else if(r<0.4)type=3;else if(r<0.45)type=4;
-      const e=new Enemy(x,y,type);if(Math.random()<Math.min(0.12,state.wave*0.02)){e.elite=true;e.hp*=2;e.color='#ffd166';}
-      state.enemies.push(e);
-    }
-    state.enemiesLeft=state.enemies.length;
-  }
-  applyMutationEffects();
-  updateUI();
-}
-function applyMutationEffects(){ if(state.wave%10===1){state.mutLevel++;const m=state.mutLevel%4;if(m===1)state.mutation='Faster Enemies';else if(m===2)state.mutation='More Enemy Bullets';else if(m===3)state.mutation='Shrinking Arena';else state.mutation='Player Power Surge';}}
+    // Start the game
+    loop();
 
-/* UI */
-function updateUI(){
-  elScore.textContent=state.score;
-  elHp.textContent=state.player?state.player.hp:0;
-  elWave.textContent=state.wave;
-  elLeft.textContent=state.enemiesLeft;
-  elHi.textContent=state.hi;
-  elCred.textContent=state.shopCredits;
-  elMut.textContent=state.mutation;
-  shopCreditsDisplay.textContent = state.shopCredits;
-  const base=220; const cur=state.player?state.player.baseCool:base;
-  const pct = cur===0? '∞%' : Math.round((base/(cur||1))*100)+'%';
-  let fr = document.querySelector('.fire-rate');
-  if(!fr){fr=document.createElement('span');fr.className='fire-rate';document.querySelector('#hud').appendChild(fr);}
-  fr.textContent = 'Fire rate: ' + pct;
-  const keysOwned = Object.keys(state.owned).filter(k=>state.owned[k]>0).map(k=>k+':'+state.owned[k]);
-  ownedSummary.textContent = keysOwned.length? keysOwned.join(', ') : 'none';
-}
-
-/* Shop */
-function shopPrice(base){ return Math.max(5, Math.floor(base * (1 + state.wave * 0.04))); }
-const SHOP_ITEMS = [
-  {id:'perm_hp', title:'Permanent +1 Max HP', baseCost:120, category:'permanent', type:'permanent', desc:'Adds +1 to max HP permanently', apply:(qty)=>{ state.permanent.hp += qty; state.player.maxHp += qty; state.player.hp = Math.min(state.player.maxHp, state.player.hp + qty); }},
-  {id:'perm_fire', title:'Permanent Fire Rate', baseCost:140, category:'permanent', type:'permanent', desc:'Reduce base cooldown by 20ms per purchase', apply:(qty)=>{ state.permanent.fire += 20*qty; state.player.baseCool = Math.max(0, state.player.baseCool - 20*qty); }},
-  {id:'perm_move', title:'Permanent Move Speed', baseCost:120, category:'permanent', type:'permanent', desc:'Increase move speed by +10 per purchase', apply:(qty)=>{ state.permanent.move += 10*qty; state.player.speed += 10*qty; }},
-  {id:'perm_damage', title:'Permanent Damage', baseCost:160, category:'permanent', type:'permanent', desc:'Increase bullet damage by +1 per purchase', apply:(qty)=>{ state.permanent.damage += qty; }},
-  {id:'instant_overdrive', title:'Instant Overdrive (5s)', baseCost:90, category:'consumable', type:'consumable', desc:'Activate overdrive immediately', apply:(qty)=>{ state.overdrive += 4000*qty; }},
-  {id:'instant_timewarp', title:'Instant Time Warp (3s)', baseCost:80, category:'consumable', type:'consumable', desc:'Slow enemies immediately', apply:(qty)=>{ state.timeWarp += 3000*qty; }},
-  {id:'extra_multi', title:'+1 Permanent Bullet', baseCost:220, category:'permanent', type:'permanent', desc:'Increase player.multi permanently', apply:(qty)=>{ state.player.multi = (state.player.multi||1) + qty; }},
-  {id:'drone', title:'Deploy Drone', baseCost:180, category:'utility', type:'permanent', desc:'Add an orbiting drone (max 6)', apply:(qty)=>{ for(let i=0;i<qty;i++){ if(state.player.orbiters.length<6) state.player.orbiters.push({x:state.player.x+20,y:state.player.y,damage:1}); }}},
-  {id:'pierce', title:'Bullet Pierce', baseCost:200, category:'weapons', type:'consumable', desc:'Bullets pierce 1 extra enemy per purchase (stacking)', apply:(qty)=>{ state.pierceBuff = (state.pierceBuff||0) + qty; }},
-  {id:'revive', title:'Revive (1 HP)', baseCost:400, category:'utility', type:'consumable', desc:'Revive once if you die (consumable)', apply:(qty)=>{ state.reviveCount = (state.reviveCount||0) + qty; }},
-  {id:'reroll', title:'Reroll Upgrades', baseCost:120, category:'utility', type:'consumable', desc:'Reroll upgrade choices next wave', apply:(qty)=>{ state.rerollNext = true; }},
-  {id:'ammo', title:'Ammo Pack', baseCost:60, category:'consumable', type:'consumable', desc:'Small credit pack (gives 60 credits)', apply:(qty)=>{ state.shopCredits += 60*qty; }},
-  {id:'starter', title:'Starter Pack', baseCost:200, category:'consumable', type:'consumable', desc:'Gives credits, small boost', apply:(qty)=>{ state.shopCredits += 200*qty; state.player.hp = Math.min(state.player.maxHp, state.player.hp + 1*qty); }},
-  {id:'boost', title:'Boost Pack', baseCost:180, category:'consumable', type:'consumable', desc:'Temporary speed + damage', apply:(qty)=>{ state.player.speed += 8*qty; setTimeout(()=>{ state.player.speed -= 8*qty; }, 15000*qty); }}
-];
-let shopSortByPrice = true;
-
-function renderShopItems(){
-  shopList.innerHTML = '';
-  const q = (document.getElementById('searchBox').value||'').trim().toLowerCase();
-  let items = SHOP_ITEMS.slice();
-  if(q) items = items.filter(it => (it.title+it.desc).toLowerCase().includes(q));
-  if(shopSortByPrice) items.sort((a,b)=>shopPrice(a.baseCost)-shopPrice(b.baseCost));
-  items.forEach(it=>{
-    const cost = shopPrice(it.baseCost);
-    const div = document.createElement('div'); div.className='shop-item';
-    const owned = state.owned[it.id]||0;
-    div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div class="title">${it.title}</div><div style="font-weight:700">${cost}c</div></div>
-      <div class="meta">${it.desc}</div>
-      <div class="controls" style="margin-top:6px">
-        <input class="qty" type="number" min="1" value="1" />
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="buy-btn">Buy</button>
-          <div style="font-size:12px;color:#9aa7bf">Owned: <span class="owned-count">${owned}</span></div>
-        </div>
-      </div>`;
-    const qtyInput = div.querySelector('.qty');
-    const buyBtn = div.querySelector('.buy-btn');
-    const ownedCountEl = div.querySelector('.owned-count');
-    buyBtn.onclick = ()=>{
-      const qty = Math.max(1, Math.floor(Number(qtyInput.value) || 1));
-      const total = cost * qty;
-      if(state.shopCredits >= total){
-        state.shopCredits -= total;
-        try{ it.apply(qty); state.owned[it.id] = (state.owned[it.id]||0) + qty; } catch(e){ console.error(e); }
-        ownedCountEl.textContent = state.owned[it.id];
-        updateUI();
-        buyBtn.textContent = 'Bought';
-        setTimeout(()=>{ buyBtn.textContent = 'Buy'; }, 700);
-      } else {
-        showMsg('Not enough credits');
-      }
-    };
-    shopList.appendChild(div);
-  });
-  updateUI();
-}
-
-/* Kill / collisions */
-function circleHit(a,b){return dist(a.x,a.y,b.x,b.y)<=a.r+b.r;}
-function killEnemy(idx,e){ state.enemies.splice(idx,1);state.enemiesLeft--;state.score+=e.elite?80:20; if(Math.random()<0.75)state.pickups.push(new Pickup(e.x,e.y,'credit',rndInt(40,160))); if(Math.random()<0.25)state.pickups.push(new Pickup(e.x,e.y,'hp',1)); for(let i=0;i<6;i++)state.particles.push(new Particle(e.x,e.y,'#ffd6d6',rand(200,600))); if(state.enemiesLeft<=0&&!state.boss)waveCleared(); }
-function waveCleared(){ if(state.wave%5===0){state.score+=500;state.shopCredits+=Math.floor(120+state.wave*10);} state.inUpgrade=true; showUpgradeOverlay(); }
-
-/* Upgrade overlay */
-function showUpgradeOverlay(){
-  upgradeList.innerHTML='';
-  const opts=[
-    {title:'Faster Fire',desc:'-20% cooldown',apply:()=>{state.player.baseCool=Math.max(0,state.player.baseCool*0.8);}},
-    {title:'Extra Bullet',desc:'+1 bullet per shot',apply:()=>{state.player.multi=(state.player.multi||1)+1;}},
-    {title:'Move Speed',desc:'+20% speed',apply:()=>{state.player.speed*=1.2;}},
-    {title:'Max HP + Heal',desc:'+1 max HP and heal 2',apply:()=>{state.player.maxHp+=1;state.player.hp=Math.min(state.player.maxHp,state.player.hp+2);}},
-    {title:'Spread Shot',desc:'Adds spread to shotgun',apply:()=>{state.player.spread=Math.min(1, state.player.spread+0.12);}},
-    {title:'Drone',desc:'Gain an orbiting drone',apply:()=>{if(state.player.orbiters.length<6)state.player.orbiters.push({x:state.player.x+20,y:state.player.y,damage:1});}}
-  ];
-  const picks=[];
-  while(picks.length<3){const o=opts[Math.floor(Math.random()*opts.length)];if(!picks.includes(o))picks.push(o);}
-  picks.forEach(opt=>{
-    const div=document.createElement('div');div.className='upgrade';div.style.display='flex';div.style.justifyContent='space-between';div.style.alignItems='center';div.style.padding='8px';div.style.border='1px solid rgba(255,255,255,0.06)';div.style.borderRadius='8px';div.innerHTML=`<div><div style="font-weight:700">${opt.title}</div><div style="color:#9aa7bf">${opt.desc}</div></div><div><button class="btn">Take</button></div>`;
-    div.querySelector('button').onclick=()=>{opt.apply();upgradeOverlay.style.display='none';state.inUpgrade=false;state.wave++;state.shopCredits+=Math.floor(60+state.wave*8);spawnWave();updateUI();};
-    upgradeList.appendChild(div);
-  });
-  upgradeOverlay.style.display='flex';
-}
-
-/* Update / draw */
-function update(dt){
-  if(!state.running||state.paused||state.inUpgrade) return;
-  if(state.overdrive>0)state.overdrive-=dt*1000;
-  if(state.timeWarp>0)state.timeWarp-=dt*1000;
-  state.player.update(dt);
-  const slowFactor=state.timeWarp>0?0.5:1;
-
-  // NO global bullet cap — bullets array can grow without enforced limit
-  for(const b of state.bullets)b.update(dt);
-  for(const b of state.eBullets)b.update(dt*slowFactor);
-  for(const p of state.particles)p.update(dt);
-  for(const pu of state.pickups)pu.update(dt);
-  for(const e of state.enemies)e.update(dt*slowFactor);
-  if(state.boss)state.boss.update(dt*slowFactor);
-
-  for(const b of state.bullets){
-    if(b.gravity){
-      for(const e of state.enemies){
-        const d=dist(b.x,b.y,e.x,e.y);
-        if(d<160){const a=Math.atan2(b.y-e.y,b.x-e.x);e.x+=Math.cos(a)*40*dt;e.y+=Math.sin(a)*40*dt;}
-      }
-    }
-  }
-
-  for(let i=state.bullets.length-1;i>=0;i--){
-    const b=state.bullets[i];
-    if(b.y<-80||b.y>H+80||b.x<-80||b.x>W+80){state.bullets.splice(i,1);continue;}
-    if(state.boss&&circleHit(b,{x:state.boss.x,y:state.boss.y,r:state.boss.r})){
-      if(!b.pierce)state.bullets.splice(i,1);
-      state.boss.hp-=1+state.permanent.damage;
-      state.particles.push(new Particle(b.x,b.y,'#ffb86b',300));
-      if(state.boss.hp<=0){state.score+=1000;state.boss=null;state.enemiesLeft=0;waveCleared();}
-      continue;
-    }
-    for(let j=state.enemies.length-1;j>=0;j--){
-      const e=state.enemies[j];
-      if(circleHit(b,e)){
-        if(e.shield>0){e.shield--;state.bullets.splice(i,1);state.particles.push(new Particle(b.x,b.y,'#7ad7ff',200));break;}
-        e.hp-=1+state.permanent.damage;
-        state.particles.push(new Particle(b.x,b.y,'#ffd6d6',300));
-        if(!b.pierce)state.bullets.splice(i,1);else b.pierce--;
-        if(e.hp<=0)killEnemy(j,e);
-        break;
-      }
-    }
-  }
-
-  for(let i=state.eBullets.length-1;i>=0;i--){
-    const b=state.eBullets[i];
-    if(b.y<-120||b.y>H+120||b.x<-120||b.x>W+120){state.eBullets.splice(i,1);continue;}
-    if(circleHit(b,state.player)){state.eBullets.splice(i,1);damagePlayer(1);}
-  }
-
-  for(let i=state.enemies.length-1;i>=0;i--){
-    const e=state.enemies[i];
-    if(e.type===2&&circleHit(e,state.player)){damagePlayer(1);killEnemy(i,e);}
-  }
-
-  for(let i=state.pickups.length-1;i>=0;i--){
-    const p=state.pickups[i];
-    if(circleHit(p,state.player)){
-      if(p.type==='credit')state.shopCredits+=p.amount;
-      else if(p.type==='hp')state.player.hp=Math.min(state.player.maxHp,state.player.hp+p.amount);
-      state.pickups.splice(i,1);sfx('power');
-    }
-  }
-
-  for(let i=state.particles.length-1;i>=0;i--)if(state.particles[i].age>state.particles[i].life)state.particles.splice(i,1);
-
-  updateUI();
-}
-
-function draw(){
-  ctx.fillStyle='#050814';ctx.fillRect(0,0,W,H);
-  ctx.save();ctx.strokeStyle='rgba(255,255,255,0.03)';ctx.lineWidth=1;
-  const step=40;for(let x=0;x<W;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
-  for(let y=0;y<H;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-  ctx.restore();
-
-  if(state.mutation==='Shrinking Arena'){ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=2;const margin=20+state.wave*0.5;ctx.strokeRect(margin,margin,W-margin*2,H-margin*2);}
-
-  for(const p of state.particles)p.draw();
-  for(const pu of state.pickups)pu.draw();
-  for(const e of state.enemies)e.draw();
-  if(state.boss)state.boss.draw();
-  for(const b of state.bullets)b.draw();
-  for(const b of state.eBullets)b.draw();
-  state.player.draw();
-
-  ctx.save();ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(10,H-52,420,44);ctx.fillStyle='#fff';ctx.font='12px Inter, Arial';
-  ctx.fillText(`Weapon: ${state.weapons[state.weaponIndex].name}`,18,H-32);
-  const base=220; const cur=state.player?state.player.baseCool:base; const pct = cur===0? '∞%' : Math.round((base/(cur||1))*100)+'%';
-  ctx.fillText(`Fire rate: ${pct}`,18,H-18);
-  ctx.fillText(`Credits: ${state.shopCredits}`,220,H-18);
-  ctx.restore();
-}
-
-/* Damage / score */
-function addScore(v){state.score+=v;if(state.score>state.hi){state.hi=state.score;localStorage.setItem('nda_hi',state.hi);}updateUI();}
-function damagePlayer(d){if(state.player.inv>0)return;if(state.player.shield>0){state.player.shield-=d;if(state.player.shield<0)state.player.shield=0;return;}state.player.hp-=d;state.player.inv=800;for(let i=0;i<12;i++)state.particles.push(new Particle(state.player.x,state.player.y,'#ff6b6b',rand(300,800)));sfx('explode');if(state.player.hp<=0)gameOver();}
-function gameOver(){state.running=false;elMsg.textContent='Game Over — Press Restart';}
-
-/* Loop */
-function loop(){
-  const t=now();let dt=(t-state.time)/1000;if(dt>0.033)dt=0.033;state.time=t;state.dt=dt;
-  try{update(dt);draw();}catch(err){showDebug('Runtime error: '+(err&&err.message?err.message:String(err)));state.running=false;}
-  requestAnimationFrame(loop);
-}
-
-/* Init */
-function init(){
-  W = canvas.width; H = canvas.height;
-  registerWeapons();
-  state.player=new Player();
-  state.weaponIndex=0;
-  state.shopCredits=400;
-  spawnWave();
-  updateUI();
-  loop();
-}
-
-/* Input */
-document.getElementById('btnRestart').onclick=()=>location.reload();
-document.getElementById('btnPause').onclick=()=>{state.paused=!state.paused;document.getElementById('btnPause').textContent=state.paused?'Resume':'Pause';};
-document.getElementById('btnShop').onclick=()=>openShop(false);
-document.getElementById('closeShop').onclick=()=>closeShop();
-document.getElementById('closeShopBottom').onclick=()=>closeShop();
-document.getElementById('btnSkills').onclick=()=>{state.shopWasPaused=state.paused;state.paused=true;skillOverlay.style.display='flex';};
-document.getElementById('closeSkills').onclick=()=>{skillOverlay.style.display='none';state.paused=state.shopWasPaused||false;};
-
-function openShop(fromSecret=false){ state.shopWasPaused = state.paused; state.paused = true; shopOverlay.style.display='flex'; renderShopItems(); updateUI(); if(fromSecret) showMsg('Secret shop opened'); }
-function closeShop(){ shopOverlay.style.display='none'; state.paused = state.shopWasPaused || false; updateUI(); }
-
-function setupBundles(){
-  document.getElementById('bundleStarter').onclick = ()=>{ const cost = shopPrice(200); if(state.shopCredits>=cost){ state.shopCredits-=cost; state.shopCredits+=120; state.player.hp=Math.min(state.player.maxHp,state.player.hp+1); updateUI(); } else showMsg('Not enough credits'); };
-  document.getElementById('bundleAmmo').onclick = ()=>{ const cost = shopPrice(120); if(state.shopCredits>=cost){ state.shopCredits-=cost; state.shopCredits+=80; updateUI(); } else showMsg('Not enough credits'); };
-  document.getElementById('bundleBoost').onclick = ()=>{ const cost = shopPrice(180); if(state.shopCredits>=cost){ state.shopCredits-=cost; state.player.speed+=12; setTimeout(()=>state.player.speed-=12,15000); updateUI(); } else showMsg('Not enough credits'); };
-}
-
-/* Start */
-window.addEventListener('load',()=>{
-  const maxW=Math.min(window.innerWidth-24,1100);
-  const scale=maxW/W;
-  canvas.style.width=(W*scale)+'px';
-  canvas.style.height=(H*scale)+'px';
-  setupBundles();
-  init();
-});
-
-/* Input handlers */
-window.addEventListener('mousemove',e=>{const rect=canvas.getBoundingClientRect();const sx=canvas.width/rect.width,sy=canvas.height/rect.height;mouse.x=(e.clientX-rect.left)*sx;mouse.y=(e.clientY-rect.top)*sy;});
-window.addEventListener('keydown',e=>{keys[e.key]=true; handleSecretKey(e.key); if(e.key==='p'||e.key==='P') { state.paused=!state.paused; document.getElementById('btnPause').textContent=state.paused?'Resume':'Pause'; } if(e.key==='r'||e.key==='R') location.reload(); if(e.key==='q'||e.key==='Q') state.weaponIndex=(state.weaponIndex-1+state.weapons.length)%state.weapons.length; if(e.key==='e'||e.key==='E') state.weaponIndex=(state.weaponIndex+1)%state.weapons.length; if(e.key==='f'||e.key==='F'){state.overdrive=4000;sfx('power');} if(e.key==='g'||e.key==='G'){state.timeWarp=3000;sfx('power');} if(e.key===' '){e.preventDefault();keys.Space=true;} });
-window.addEventListener('keyup',e=>{keys[e.key]=false;if(e.key===' ')keys.Space=false;});
-
-/* End of script */
-})();
 </script>
 </body>
 </html>
