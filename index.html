@@ -232,8 +232,8 @@
 
         // INSANE EXPONENTIAL ACCELERATION
         if (up) {
-            if (speed.m === 0) speed = BF.create(1); // Kickstart
-            else speed = speed.mul(700); // Multiplies infinitely.
+            if (speed.m === 0) speed = BF.create(100); // Kickstart
+            else speed = speed.mul(70000000000); // Multiplies infinitely.
         } else if (down) {
             speed = speed.mul(0.8); // Brake
         } else {
