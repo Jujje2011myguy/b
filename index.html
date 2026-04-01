@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unbreakable Infinity Drive</title>
+    <title>Absolute Infinity Drive</title>
     <style>
         body {
             margin: 0;
@@ -19,7 +19,7 @@
             pointer-events: none;
             color: white;
             text-shadow: 2px 2px 0px #000;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.8);
             padding: 20px;
             border-radius: 10px;
             border: 2px solid #555;
@@ -28,8 +28,8 @@
         }
         h2 { margin: 0 0 10px 0; color: #ff0055; text-transform: uppercase; letter-spacing: 2px; }
         p { margin: 5px 0; font-size: 16px; font-weight: bold; }
-        .data { color: #00ffff; font-size: 22px; }
-        .warning { color: #ffcc00; font-size: 12px; margin-top: 10px;}
+        .data { color: #00ffff; font-size: 24px; }
+        .warning { color: #ffcc00; font-size: 13px; margin-top: 15px;}
         
         #flash {
             position: absolute;
@@ -50,28 +50,34 @@
     <div id="ui">
         <h2>Hyperspace Engine</h2>
         <p>Accelerate: W | Steer: A / D</p>
-        <p style="color:#00ff88;">Boost: SHIFT (Double 'e' Exponent, 0.5s CD)</p>
+        <p style="color:#00ff88;">Boost: SHIFT (Double 'e' Exponent)</p>
         <br>
         <p>Speed: <br><span id="speedDisplay" class="data">0 km/h</span></p>
         <p>Distance: <br><span id="distDisplay" class="data">0 m</span></p>
         <p>Coords (X, Z): <br><span id="coordDisplay" class="data">0, 0</span></p>
-        <p class="warning">ENGINE CAPPED AT: TRUE INFINITY</p>
+        <p class="warning">ENGINE CAPPED AT: YOUR RAM CAPACITY</p>
     </div>
 
 <script>
     // ==========================================
-    // 1. CUSTOM BIG-NUMBER ENGINE (PREVENTS CRASHES)
+    // 1. ABSOLUTE BIG-INT ENGINE (Bypasses JS e308 limit)
     // ==========================================
     class BF {
         constructor(m, e) {
-            if (m === 0 || isNaN(m) || !isFinite(m)) { this.m = 0; this.e = 0; return; }
+            if (m === 0 || isNaN(m) || !isFinite(m)) { this.m = 0; this.e = 0n; return; }
             let adjust = Math.floor(Math.log10(Math.abs(m)));
             this.m = m / Math.pow(10, adjust);
-            this.e = e + adjust;
+            
+            // Exponent is now a BigInt, allowing it to reach astronomical digits
+            if (typeof e === 'bigint') {
+                this.e = e + BigInt(adjust);
+            } else {
+                this.e = BigInt(Math.floor(e)) + BigInt(adjust);
+            }
         }
-        static create(val) { return new BF(val, 0); }
+        static create(val) { return new BF(val, 0n); }
         
-        mul(val) { // val is a standard number
+        mul(val) { 
             if (val === 0 || this.m === 0) return BF.create(0);
             return new BF(this.m * val, this.e);
         }
@@ -81,28 +87,41 @@
             if (other.m === 0) return new BF(this.m, this.e);
             
             let diff = this.e - other.e;
-            // If the difference in exponents is massive, just return the bigger number
-            // (e.g., 1e10000 + 1e50 = 1e10000)
-            if (diff > 16) return new BF(this.m, this.e);
-            if (diff < -16) return new BF(other.m, other.e);
             
-            let mSum = (this.m * Math.pow(10, diff)) + other.m;
+            // If the size difference is massive, just absorb the smaller number
+            if (diff > 16n) return new BF(this.m, this.e);
+            if (diff < -16n) return new BF(other.m, other.e);
+            
+            let diffNum = Number(diff); // Safe to cast because we know it's <= 16
+            let mSum = (this.m * Math.pow(10, diffNum)) + other.m;
             return new BF(mSum, other.e);
         }
 
         getVisualValue() {
             if (this.m === 0) return 0;
-            if (this.e > 3) return 2000; // Cap logical screen rendering speed so graphics card doesn't explode
-            if (this.e < 0) return 0;
-            return this.m * Math.pow(10, this.e);
+            if (this.e > 3n) return 2000; // Cap renderer translation to prevent GPU crash
+            if (this.e < 0n) return 0;
+            return this.m * Math.pow(10, Number(this.e));
         }
 
         format() {
             if (this.m === 0) return "0";
-            if (this.e >= 0 && this.e < 6) return Math.floor(this.m * Math.pow(10, this.e)).toLocaleString();
+            if (this.e >= 0n && this.e < 6n) {
+                return Math.floor(this.m * Math.pow(10, Number(this.e))).toLocaleString();
+            }
+            
             let sign = this.m < 0 ? "-" : "";
-            // Even the exponent might get massive, format it cleanly
-            return sign + Math.abs(this.m).toFixed(3) + "e" + this.e;
+            let eStr = this.e.toString(); // BigInt can safely print millions of digits
+            
+            // Nested Scientific Notation: If your exponent itself is > 1,000,000
+            // Example: e(1000000) displays as e(1.00e6)
+            if (eStr.length > 6) { 
+                let eOfE = eStr.length - 1;
+                let mOfE = (Number(eStr.substring(0, 4)) / 1000).toFixed(2);
+                return sign + Math.abs(this.m).toFixed(2) + "e(" + mOfE + "e" + eOfE + ")";
+            }
+            
+            return sign + Math.abs(this.m).toFixed(2) + "e" + eStr;
         }
     }
 
@@ -155,7 +174,7 @@
     let carAngle = 0;
 
     let lastBoostTime = 0; 
-    const BOOST_COOLDOWN = 10; 
+    const BOOST_COOLDOWN = 10; // Rapid fire shift pressing
 
     // Visual Treadmill Variables
     let chunkX = 0;
@@ -219,7 +238,6 @@
                         let px = (getSeed(targetCx, targetCz, i + 1) - 0.5) * CHUNK_SIZE;
                         let pz = (getSeed(targetCx, targetCz, i + 2) - 0.5) * CHUNK_SIZE;
                         
-                        // Clear center path
                         if (targetCx === 0 && targetCz === 0 && Math.abs(px) < 40 && Math.abs(pz) < 40) continue;
 
                         let pillar = new THREE.Mesh(pGeo, pMat);
@@ -252,24 +270,22 @@
 
         let now = Date.now();
 
-        // SHIFT BOOST LOGIC (DOUBLES THE EXPONENT)
+        // SHIFT BOOST LOGIC (DOUBLES THE BIG-INT EXPONENT)
         if (shift && (now - lastBoostTime > BOOST_COOLDOWN)) {
-            if (speed.m === 0 || speed.e < 2) {
-                // If stopped or very slow, jump straight to e2 (100) so doubling works better
+            if (speed.m === 0 || speed.e < 2n) {
                 speed = BF.create(100); 
             } else {
-                // EXPLICITLY DOUBLE THE 'E' VALUE
-                speed = new BF(speed.m, speed.e * 2); 
+                // e * 2n securely manipulates the exponent via BigInt!
+                speed = new BF(speed.m, speed.e * 2n); 
             }
             lastBoostTime = now;
             
-            // Trigger UI Flash
             flashElement.style.transition = 'none';
             flashElement.style.opacity = '1';
             setTimeout(() => {
-                flashElement.style.transition = 'opacity 0.5s ease-out';
+                flashElement.style.transition = 'opacity 0.2s ease-out';
                 flashElement.style.opacity = '0';
-            }, 50);
+            }, 30);
         }
 
         // NORMAL ACCELERATION
@@ -282,7 +298,7 @@
             speed = speed.mul(0.98); 
         }
 
-        if (speed.e < 0 && speed.m < 1) speed = BF.create(0); 
+        if (speed.e < 0n && speed.m < 1) speed = BF.create(0); 
 
         // Steering
         if (speed.m > 0) {
@@ -313,8 +329,10 @@
         localZ -= czDiff * CHUNK_SIZE;
 
         // REALITY WARPING VISUAL EFFECTS
-        if (speed.e > 3) {
-            camera.fov = 75 + Math.min(100, speed.e * 0.5); // Slightly scaled so camera doesn't flip entirely at e10000
+        if (speed.e > 3n) {
+            // Cap FOV visual stretch so it doesn't flip entirely at massive BigInts
+            let eNum = speed.e > 1000n ? 1000 : Number(speed.e);
+            camera.fov = 75 + Math.min(100, eNum * 0.5); 
             camera.updateProjectionMatrix();
 
             let hue = (Date.now() % 2000) / 2000;
@@ -322,7 +340,7 @@
             scene.fog.color.setHSL(hue, 1, 0.1);
             groundMat.color.setHSL((hue + 0.5) % 1, 1, 0.5);
             
-            car.position.x = (Math.random() - 0.5) * Math.min(2, speed.e * 0.1);
+            car.position.x = (Math.random() - 0.5) * Math.min(2, eNum * 0.1);
         } else {
             camera.fov = 75;
             camera.updateProjectionMatrix();
