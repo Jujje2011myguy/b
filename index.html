@@ -30,14 +30,29 @@
         p { margin: 5px 0; font-size: 16px; font-weight: bold; }
         .data { color: #00ffff; font-size: 22px; }
         .warning { color: #ffcc00; font-size: 12px; margin-top: 10px;}
+        
+        /* Screen flash effect for the boost */
+        #flash {
+            position: absolute;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5;
+            transition: opacity 0.5s ease-out; /* Fades out over 0.5s, matching cooldown */
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
+    <div id="flash"></div>
+
     <div id="ui">
         <h2>Hyperspace Engine</h2>
-        <p>Controls: WASD (Hold W to transcend)</p>
+        <p>Accelerate: W | Steer: A / D</p>
+        <p style="color:#00ff88;">Boost: SHIFT (x2 Speed, 0.5s CD)</p>
+        <br>
         <p>Speed: <br><span id="speedDisplay" class="data">0 km/h</span></p>
         <p>Distance: <br><span id="distDisplay" class="data">0 m</span></p>
         <p>Coords (X, Z): <br><span id="coordDisplay" class="data">0, 0</span></p>
@@ -48,8 +63,6 @@
     // ==========================================
     // 1. CUSTOM BIG-NUMBER ENGINE (PREVENTS CRASHES)
     // ==========================================
-    // JavaScript natively crashes at 1e308. This class allows 
-    // numbers to go to 10^(10^308), effectively TRUE INFINITY.
     class BF {
         constructor(m, e) {
             if (m === 0 || isNaN(m) || !isFinite(m)) { this.m = 0; this.e = 0; return; }
@@ -131,13 +144,16 @@
     car.add(camera); // Camera follows car
 
     // ==========================================
-    // 4. INFINITE MATH & PHYSICS VARIABLES
+    // 4. INFINITE MATH, PHYSICS & BOOST VARIABLES
     // ==========================================
     let speed = BF.create(0);
     let totalDist = BF.create(0);
     let worldX = BF.create(0);
     let worldZ = BF.create(0);
     let carAngle = 0;
+
+    let lastBoostTime = 0; // Tracks the cooldown for the Shift boost
+    const BOOST_COOLDOWN = 500; // 500 milliseconds (0.5 seconds)
 
     // Visual Treadmill Variables
     let chunkX = 0;
@@ -159,7 +175,7 @@
     const groundGeo = new THREE.PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE);
     groundGeo.rotateX(-Math.PI / 2);
     
-    // Wireframe ground looks cooler at hyperspeed
+    // Wireframe ground
     const groundMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, wireframe: true });
     const pGeo = new THREE.BoxGeometry(4, 20, 4);
     const pMat = new THREE.MeshLambertMaterial({ color: 0xff0055 });
@@ -222,6 +238,8 @@
     // ==========================================
     // 6. MAIN HYPER-LOOP
     // ==========================================
+    const flashElement = document.getElementById('flash');
+
     function animate() {
         requestAnimationFrame(animate);
 
@@ -229,11 +247,32 @@
         let down = keys['s'] || keys['arrowdown'];
         let left = keys['a'] || keys['arrowleft'];
         let right = keys['d'] || keys['arrowright'];
+        let shift = keys['shift'];
 
-        // INSANE EXPONENTIAL ACCELERATION
+        let now = Date.now();
+
+        // SHIFT BOOST LOGIC
+        if (shift && (now - lastBoostTime > BOOST_COOLDOWN)) {
+            if (speed.m === 0) {
+                speed = BF.create(20); // Kickstart if stopped
+            } else {
+                speed = speed.mul(2); // Double the speed!
+            }
+            lastBoostTime = now;
+            
+            // Trigger UI Flash
+            flashElement.style.transition = 'none'; // Snap to solid white
+            flashElement.style.opacity = '1';
+            setTimeout(() => {
+                flashElement.style.transition = 'opacity 0.5s ease-out'; // Fade back out
+                flashElement.style.opacity = '0';
+            }, 50);
+        }
+
+        // NORMAL EXPONENTIAL ACCELERATION
         if (up) {
-            if (speed.m === 0) speed = BF.create(99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999); // Kickstart
-            else speed = speed.mul(9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999); // Multiplies infinitely.
+            if (speed.m === 0) speed = BF.create(1); 
+            else speed = speed.mul(1.08); 
         } else if (down) {
             speed = speed.mul(0.8); // Brake
         } else {
@@ -260,7 +299,7 @@
         worldX = worldX.add(vxTrue);
         worldZ = worldZ.add(vzTrue);
 
-        // Visual screen movement updates (Capped so renderer doesn't break)
+        // Visual screen movement updates
         let renderSpd = speed.getVisualValue();
         localX += renderSpd * -Math.sin(carAngle);
         localZ += renderSpd * -Math.cos(carAngle);
@@ -297,7 +336,7 @@
 
         updateTreadmill();
 
-        // UPDATE UI WITH INFINITE FORMATTING
+        // UPDATE UI
         document.getElementById('speedDisplay').innerText = speed.format() + " km/h";
         document.getElementById('distDisplay').innerText = totalDist.format() + " m";
         document.getElementById('coordDisplay').innerText = `${worldX.format()}, ${worldZ.format()}`;
