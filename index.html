@@ -3,381 +3,383 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Absolute Infinity Drive</title>
+    <title>Slow Roads Clone - Infinite Zen Driving</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #000;
-            font-family: 'Courier New', Courier, monospace;
+            background-color: #d1e2e1; /* Fog/Sky color */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
         }
         #ui {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            pointer-events: none;
+            bottom: 30px;
+            left: 30px;
             color: white;
-            text-shadow: 2px 2px 0px #000;
-            background: rgba(0,0,0,0.8);
-            padding: 20px;
-            border-radius: 10px;
-            border: 2px solid #555;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+            pointer-events: none;
             z-index: 10;
-            min-width: 350px;
         }
-        h2 { margin: 0 0 10px 0; color: #ff0055; text-transform: uppercase; letter-spacing: 2px; }
-        p { margin: 5px 0; font-size: 16px; font-weight: bold; }
-        .data { color: #00ffff; font-size: 24px; }
-        .warning { color: #ffcc00; font-size: 13px; margin-top: 15px;}
+        h1 { margin: 0 0 5px 0; font-size: 28px; font-weight: 600; letter-spacing: 1px; }
+        p { margin: 0; font-size: 16px; opacity: 0.9; }
+        .speed { font-size: 32px; font-weight: bold; margin-top: 10px; color: #fff; }
         
-        #flash {
+        #controls-help {
             position: absolute;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: white;
-            opacity: 0;
+            top: 30px;
+            right: 30px;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: right;
             pointer-events: none;
-            z-index: 5;
-            transition: opacity 0.5s ease-out;
-        }
-
-        #double-text {
-            position: absolute;
-            top: 30%; left: 50%;
-            transform: translate(-50%, -50%);
-            color: #fff;
-            font-size: 60px;
-            font-weight: bold;
-            font-style: italic;
-            text-shadow: 0 0 30px #00ffff, 0 0 10px #ff0055;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 100;
         }
     </style>
+    <!-- Load Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <div id="flash"></div>
-    <div id="double-text">EXPONENT DOUBLED!</div>
-
     <div id="ui">
-        <h2>Hyperspace Engine</h2>
-        <p>Accelerate: W | Steer: A / D</p>
-        <p style="color:#00ff88;">Boost: SHIFT (Double 'e' Exponent)</p>
-        <br>
-        <p>Speed: <br><span id="speedDisplay" class="data">0 km/h</span></p>
-        <p>Distance: <br><span id="distDisplay" class="data">0 m</span></p>
-        <p>Coords (X, Z): <br><span id="coordDisplay" class="data">0, 0</span></p>
-        <p class="warning">ENGINE CAPPED AT: YOUR RAM CAPACITY</p>
+        <h1>Endless Road</h1>
+        <p>A relaxing infinite drive.</p>
+        <div class="speed"><span id="speedDisplay">0</span> km/h</div>
+    </div>
+
+    <div id="controls-help">
+        <p><b>W / Up</b> : Accelerate</p>
+        <p><b>S / Down</b> : Brake / Reverse</p>
+        <p><b>A / D</b> : Steer</p>
     </div>
 
 <script>
     // ==========================================
-    // 1. ABSOLUTE BIG-INT ENGINE 
-    // ==========================================
-    class BF {
-        constructor(m, e) {
-            if (m === 0 || isNaN(m) || !isFinite(m)) { this.m = 0; this.e = 0n; return; }
-            let adjust = Math.floor(Math.log10(Math.abs(m)));
-            this.m = m / Math.pow(10, adjust);
-            
-            if (typeof e === 'bigint') {
-                this.e = e + BigInt(adjust);
-            } else {
-                this.e = BigInt(Math.floor(e)) + BigInt(adjust);
-            }
-        }
-        static create(val) { return new BF(val, 0n); }
-        
-        mul(val) { 
-            if (val === 0 || this.m === 0) return BF.create(0);
-            return new BF(this.m * val, this.e);
-        }
-        
-        add(other) {
-            if (this.m === 0) return new BF(other.m, other.e);
-            if (other.m === 0) return new BF(this.m, this.e);
-            
-            let diff = this.e - other.e;
-            
-            if (diff > 16n) return new BF(this.m, this.e);
-            if (diff < -16n) return new BF(other.m, other.e);
-            
-            let diffNum = Number(diff); 
-            let mSum = (this.m * Math.pow(10, diffNum)) + other.m;
-            return new BF(mSum, other.e);
-        }
-
-        getVisualValue() {
-            if (this.m === 0) return 0;
-            if (this.e > 3n) return 2000; 
-            if (this.e < 0n) return 0;
-            return this.m * Math.pow(10, Number(this.e));
-        }
-
-        format() {
-            if (this.m === 0) return "0";
-            if (this.e >= 0n && this.e < 6n) {
-                return Math.floor(this.m * Math.pow(10, Number(this.e))).toLocaleString();
-            }
-            
-            let sign = this.m < 0 ? "-" : "";
-            let eStr = this.e.toString(); 
-            
-            // Explicitly format the exponent with commas so you can SEE it doubling
-            let eFormatted = eStr.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-            
-            return sign + Math.abs(this.m).toFixed(2) + "e" + eFormatted;
-        }
-    }
-
-    // ==========================================
-    // 2. SCENE & CAMERA SETUP
+    // 1. SCENE & ENVIRONMENT SETUP
     // ==========================================
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 4000);
+    const skyColor = new THREE.Color(0xd1e2e1);
+    scene.background = skyColor;
+    scene.fog = new THREE.FogExp2(skyColor, 0.0035);
+
+    const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    scene.fog = new THREE.FogExp2(0x111122, 0.001);
-    scene.background = new THREE.Color(0x111122);
+    // Lighting (Sunset/Afternoon vibe)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
 
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
-    hemiLight.position.set(0, 200, 0);
-    scene.add(hemiLight);
-
-    // ==========================================
-    // 3. CAR & PLAYER SETUP
-    // ==========================================
-    const car = new THREE.Group();
-    
-    const bodyGeo = new THREE.BoxGeometry(4, 1.5, 9);
-    const bodyMat = new THREE.MeshLambertMaterial({ color: 0x00ffff });
-    const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 1.25;
-    car.add(body);
-
-    const roofGeo = new THREE.BoxGeometry(3.5, 1.2, 4);
-    const roofMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
-    const roof = new THREE.Mesh(roofGeo, roofMat);
-    roof.position.set(0, 2.6, -1);
-    car.add(roof);
-
-    scene.add(car);
-
-    camera.position.set(0, 8, 20);
-    camera.lookAt(0, 2, -10);
-    car.add(camera);
+    const dirLight = new THREE.DirectionalLight(0xfff0dd, 0.8);
+    dirLight.position.set(-100, 150, 50);
+    dirLight.castShadow = true;
+    dirLight.shadow.camera.left = -150;
+    dirLight.shadow.camera.right = 150;
+    dirLight.shadow.camera.top = 150;
+    dirLight.shadow.camera.bottom = -150;
+    dirLight.shadow.camera.far = 500;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    scene.add(dirLight);
 
     // ==========================================
-    // 4. INFINITE MATH, PHYSICS & BOOST VARIABLES
+    // 2. PROCEDURAL MATH & NOISE ENGINE
     // ==========================================
-    let speed = BF.create(0);
-    let totalDist = BF.create(0);
-    let worldX = BF.create(0);
-    let worldZ = BF.create(0);
-    let carAngle = 0;
-
-    let lastBoostTime = 0; 
-    const BOOST_COOLDOWN = 1; // Milliseconds. Fast enough to spam, slow enough to see.
-
-    let chunkX = 0;
-    let chunkZ = 0;
-    let localX = 0;
-    let localZ = 0;
-
-    const CHUNK_SIZE = 1000;
-    const GRID_SIZE = 1;
-
-    const keys = {};
-    window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
-    window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
-
-    // ==========================================
-    // 5. PROCEDURAL WORLD GENERATION
-    // ==========================================
-    const chunks = [];
-    const groundGeo = new THREE.PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE);
-    groundGeo.rotateX(-Math.PI / 2);
-    
-    const groundMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, wireframe: true });
-    const pGeo = new THREE.BoxGeometry(4, 20, 4);
-    const pMat = new THREE.MeshLambertMaterial({ color: 0xff0055 });
-
-    function getSeed(x, z, offset) {
-        let safeX = (x % 1000000) || 0; 
-        let safeZ = (z % 1000000) || 0;
-        let n = Math.sin(safeX * 12.9898 + safeZ * 78.233 + offset * 45.123) * 43758.5453;
-        return n - Math.floor(n);
+    // Stacked sine waves to create organic, endless noise without needing external libraries
+    function noise(x, z) {
+        return (Math.sin(x * 0.01 + Math.cos(z * 0.01)) * 15) + 
+               (Math.sin(x * 0.003 + z * 0.004) * 45) + 
+               (Math.sin(x * 0.05 + z * 0.02) * 2);
     }
 
-    for (let i = 0; i < 9; i++) {
-        const group = new THREE.Group();
-        scene.add(group);
-        chunks.push({ group: group, cx: null, cz: null });
+    // Calculates the exact center of the endless winding road
+    function getRoadCenter(z) {
+        let x = Math.sin(z * 0.002) * 300 + Math.sin(z * 0.007) * 80;
+        let y = Math.sin(z * 0.0015) * 60 + Math.sin(z * 0.004) * 20;
+        return { x, y };
     }
 
-    function updateTreadmill() {
-        let chunkIndex = 0;
-        for (let dx = -GRID_SIZE; dx <= GRID_SIZE; dx++) {
-            for (let dz = -GRID_SIZE; dz <= GRID_SIZE; dz++) {
-                
-                let targetCx = chunkX + dx;
-                let targetCz = chunkZ + dz;
-                let chunkObj = chunks[chunkIndex];
+    // Calculates the final terrain height, flattening out a path for the road
+    const ROAD_WIDTH = 12;
+    const BLEND_WIDTH = 18;
 
-                if (chunkObj.cx !== targetCx || chunkObj.cz !== targetCz) {
-                    chunkObj.cx = targetCx;
-                    chunkObj.cz = targetCz;
-                    
-                    while(chunkObj.group.children.length > 0) {
-                        chunkObj.group.remove(chunkObj.group.children[0]);
-                    }
+    function getElevation(x, z) {
+        let road = getRoadCenter(z);
+        let distToRoad = Math.abs(x - road.x);
+        let rawTerrainHeight = road.y + noise(x, z);
+        
+        // Flatten the terrain if it's near the road spine
+        if (distToRoad < ROAD_WIDTH) {
+            return road.y;
+        } else if (distToRoad < ROAD_WIDTH + BLEND_WIDTH) {
+            // Smoothly blend the flat road into the wild mountains
+            let t = (distToRoad - ROAD_WIDTH) / BLEND_WIDTH;
+            t = t * t * (3 - 2 * t); // Smoothstep curve
+            return THREE.MathUtils.lerp(road.y, rawTerrainHeight, t);
+        }
+        return rawTerrainHeight;
+    }
 
-                    const ground = new THREE.Mesh(groundGeo, groundMat);
-                    chunkObj.group.add(ground);
+    // ==========================================
+    // 3. INFINITE TERRAIN GENERATOR
+    // ==========================================
+    // We use a "Floating Grid" technique. The mesh follows the car, and vertices update based on world coordinates.
+    const TERRAIN_SIZE = 600;
+    const TERRAIN_RES = 100;
+    const terrainGeo = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_RES, TERRAIN_RES);
+    terrainGeo.rotateX(-Math.PI / 2);
 
-                    let objCount = Math.floor(getSeed(targetCx, targetCz, 0) * 10) + 5;
-                    for (let i = 0; i < objCount; i++) {
-                        let px = (getSeed(targetCx, targetCz, i + 1) - 0.5) * CHUNK_SIZE;
-                        let pz = (getSeed(targetCx, targetCz, i + 2) - 0.5) * CHUNK_SIZE;
-                        
-                        if (targetCx === 0 && targetCz === 0 && Math.abs(px) < 40 && Math.abs(pz) < 40) continue;
+    const terrainMat = new THREE.MeshStandardMaterial({ 
+        vertexColors: true, 
+        flatShading: true, 
+        roughness: 0.8 
+    });
+    const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
+    terrainMesh.receiveShadow = true;
+    scene.add(terrainMesh);
 
-                        let pillar = new THREE.Mesh(pGeo, pMat);
-                        let heightScale = getSeed(targetCx, targetCz, i + 3) * 5 + 1;
-                        pillar.scale.set(1, heightScale, 1);
-                        pillar.position.set(px, 10 * heightScale, pz);
-                        chunkObj.group.add(pillar);
-                    }
-                }
+    const posAttr = terrainGeo.attributes.position;
+    const colors = new Float32Array(posAttr.count * 3);
+    terrainGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const colAttr = terrainGeo.attributes.color;
 
-                chunkObj.group.position.set((dx * CHUNK_SIZE) - localX, 0, (dz * CHUNK_SIZE) - localZ);
-                chunkIndex++;
+    const colorGrass = new THREE.Color(0x5c804b);
+    const colorRoad = new THREE.Color(0x3a3d3c);
+    const colorLine = new THREE.Color(0xdddddd);
+    const colorDirt = new THREE.Color(0x6b5a45);
+
+    let lastGridX = 0;
+    let lastGridZ = 0;
+
+    function updateTerrain(carX, carZ) {
+        // Only update vertices if the car has moved significantly to save performance
+        let snapX = Math.round(carX / 10) * 10;
+        let snapZ = Math.round(carZ / 10) * 10;
+
+        if (snapX === lastGridX && snapZ === lastGridZ) return;
+        lastGridX = snapX;
+        lastGridZ = snapZ;
+
+        terrainMesh.position.set(snapX, 0, snapZ);
+
+        for (let i = 0; i < posAttr.count; i++) {
+            // Get local vertex position
+            let vx = (i % (TERRAIN_RES + 1)) * (TERRAIN_SIZE / TERRAIN_RES) - (TERRAIN_SIZE / 2);
+            let vz = Math.floor(i / (TERRAIN_RES + 1)) * (TERRAIN_SIZE / TERRAIN_RES) - (TERRAIN_SIZE / 2);
+            
+            // Convert to absolute world position
+            let worldX = snapX + vx;
+            let worldZ = snapZ + vz;
+
+            let height = getElevation(worldX, worldZ);
+            posAttr.setY(i, height);
+
+            // Paint the road and landscape
+            let road = getRoadCenter(worldZ);
+            let dist = Math.abs(worldX - road.x);
+            let finalColor = colorGrass;
+
+            if (dist < ROAD_WIDTH - 0.5) {
+                finalColor = colorRoad;
+            } else if (dist < ROAD_WIDTH + 0.5) {
+                finalColor = colorLine; // White edge lines
+            } else if (dist < ROAD_WIDTH + 6) {
+                finalColor = colorDirt; // Dirt shoulders
+            }
+
+            // Add slight color variation to grass
+            if (finalColor === colorGrass && noise(worldX * 2, worldZ * 2) > 0) {
+                colAttr.setXYZ(i, finalColor.r * 0.9, finalColor.g * 0.9, finalColor.b * 0.9);
+            } else {
+                colAttr.setXYZ(i, finalColor.r, finalColor.g, finalColor.b);
             }
         }
+
+        posAttr.needsUpdate = true;
+        colAttr.needsUpdate = true;
+        terrainGeo.computeVertexNormals();
     }
 
     // ==========================================
-    // 6. MAIN HYPER-LOOP
+    // 4. INSTANCED TREES (SCENERY)
     // ==========================================
-    const flashElement = document.getElementById('flash');
-    const doubleTextElement = document.getElementById('double-text');
+    const TREE_COUNT = 400;
+    const treeGeo = new THREE.ConeGeometry(3, 12, 5);
+    treeGeo.translate(0, 6, 0); // Anchor at bottom
+    const treeMat = new THREE.MeshStandardMaterial({ color: 0x2e4a27, flatShading: true });
+    const treeMesh = new THREE.InstancedMesh(treeGeo, treeMat, TREE_COUNT);
+    treeMesh.castShadow = true;
+    scene.add(treeMesh);
 
+    const treeData = [];
+    const dummy = new THREE.Object3D();
+
+    for (let i = 0; i < TREE_COUNT; i++) {
+        treeData.push({ x: 0, z: 0, scale: 1 });
+    }
+
+    function updateTrees(carX, carZ) {
+        let renderRadius = TERRAIN_SIZE / 2.2;
+        
+        for (let i = 0; i < TREE_COUNT; i++) {
+            let t = treeData[i];
+            
+            // If tree is too far behind or outside radius, respawn it ahead of the car
+            if (Math.abs(t.x - carX) > renderRadius || Math.abs(t.z - carZ) > renderRadius) {
+                // Spawn in a radius around the car
+                let angle = Math.random() * Math.PI * 2;
+                let dist = Math.random() * renderRadius;
+                t.x = carX + Math.cos(angle) * dist;
+                t.z = carZ + Math.sin(angle) * dist;
+                t.scale = 0.8 + Math.random() * 0.6;
+                
+                // Keep trees off the road
+                let road = getRoadCenter(t.z);
+                if (Math.abs(t.x - road.x) < ROAD_WIDTH + 15) {
+                    t.x += (t.x > road.x ? 1 : -1) * 20; // Push away
+                }
+            }
+
+            // Update instance matrix
+            dummy.position.set(t.x, getElevation(t.x, t.z), t.z);
+            dummy.scale.set(t.scale, t.scale, t.scale);
+            dummy.updateMatrix();
+            treeMesh.setMatrixAt(i, dummy.matrix);
+        }
+        treeMesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // ==========================================
+    // 5. CAR & PHYSICS
+    // ==========================================
+    const carGroup = new THREE.Group();
+    
+    // Simple stylized car body
+    const carGeo = new THREE.BoxGeometry(2.2, 1.2, 4.5);
+    const carMat = new THREE.MeshStandardMaterial({ color: 0xd94838, roughness: 0.4 });
+    const carBody = new THREE.Mesh(carGeo, carMat);
+    carBody.position.y = 1;
+    carBody.castShadow = true;
+    carGroup.add(carBody);
+    
+    // Windshield
+    const glassGeo = new THREE.BoxGeometry(2.0, 0.6, 2.0);
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+    const glass = new THREE.Mesh(glassGeo, glassMat);
+    glass.position.set(0, 1.6, -0.5);
+    carGroup.add(glass);
+
+    scene.add(carGroup);
+
+    // Driving variables
+    let speed = 0;
+    let angle = 0; // Rotation around Y axis
+    let carX = 0;
+    let carZ = 0;
+
+    const MAX_SPEED = 1.2; 
+    const ACCEL = 0.005;
+    const FRICTION = 0.985;
+    const TURN_SPEED = 0.035;
+
+    const keys = {};
+    window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+    // Initial positioning
+    carZ = -100;
+    carX = getRoadCenter(carZ).x;
+    updateTerrain(carX, carZ); // Force first terrain generation
+    updateTrees(carX, carZ);
+
+    // ==========================================
+    // 6. MAIN GAME LOOP
+    // ==========================================
     function animate() {
         requestAnimationFrame(animate);
 
+        // Inputs
         let up = keys['w'] || keys['arrowup'];
         let down = keys['s'] || keys['arrowdown'];
         let left = keys['a'] || keys['arrowleft'];
         let right = keys['d'] || keys['arrowright'];
-        let shift = keys['shift'];
 
-        let now = Date.now();
+        // Physics
+        if (up) speed += ACCEL;
+        else if (down) speed -= ACCEL * 1.5; // Brakes
+        else speed *= FRICTION; // Coasting
 
-        // SHIFT BOOST LOGIC (DOUBLES THE BIG-INT EXPONENT)
-        if (shift && (now - lastBoostTime > BOOST_COOLDOWN)) {
-            if (speed.m === 0 || speed.e < 2n) {
-                speed = BF.create(100); 
-            } else {
-                // Here is the magic: the BigInt Exponent is literally multiplied by 2!
-                speed = new BF(speed.m, speed.e * 6n); 
-            }
-            lastBoostTime = now;
-            
-            // Screen Flash Effect
-            flashElement.style.transition = 'none';
-            flashElement.style.opacity = '1';
-            
-            // Giant Double Text Effect
-            doubleTextElement.style.transition = 'none';
-            doubleTextElement.style.opacity = '1';
-            doubleTextElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
-            
-            setTimeout(() => {
-                flashElement.style.transition = 'opacity 0.2s ease-out';
-                flashElement.style.opacity = '0';
-                
-                doubleTextElement.style.transition = 'all 0.5s ease-out';
-                doubleTextElement.style.opacity = '0';
-                doubleTextElement.style.transform = 'translate(-50%, -50%) scale(1)';
-            }, 50);
+        // Speed caps
+        speed = Math.max(-MAX_SPEED / 2, Math.min(speed, MAX_SPEED));
+
+        // Steering (Only turn if moving)
+        if (Math.abs(speed) > 0.01) {
+            let turnFactor = (speed / MAX_SPEED); // Turn slightly sharper at speed
+            if (left) angle += TURN_SPEED * Math.sign(speed);
+            if (right) angle -= TURN_SPEED * Math.sign(speed);
         }
 
-        // NORMAL ACCELERATION
-        if (up) {
-            if (speed.m === 0) speed = BF.create(1); 
-            else speed = speed.mul(1.08); 
-        } else if (down) {
-            speed = speed.mul(0.8); 
-        } else {
-            speed = speed.mul(0.98); 
+        // Apply movement
+        // In Three.js, negative Z is "forward"
+        carX += Math.sin(angle) * speed;
+        carZ += Math.cos(angle) * speed;
+
+        // Ground Alignment Magic (Suspension Simulation)
+        // We sample 3 points under the car to calculate exactly how it should tilt on the hills
+        let frontZ = carZ + Math.cos(angle) * 2;
+        let frontX = carX + Math.sin(angle) * 2;
+        let backZ  = carZ - Math.cos(angle) * 2;
+        let backX  = carX - Math.sin(angle) * 2;
+
+        let rightZ = carZ - Math.sin(angle) * 1.5;
+        let rightX = carX + Math.cos(angle) * 1.5;
+
+        let centerHeight = getElevation(carX, carZ);
+        let frontHeight  = getElevation(frontX, frontZ);
+        let backHeight   = getElevation(backX, backZ);
+        let rightHeight  = getElevation(rightX, rightZ);
+
+        carGroup.position.set(carX, centerHeight, carZ);
+
+        // Calculate pitch and roll based on elevation differences
+        let pitch = Math.atan2(frontHeight - backHeight, 4);
+        let roll = Math.atan2(centerHeight - rightHeight, 1.5);
+
+        // Apply rotation (Euler order YXZ prevents gimbal lock issues for cars)
+        carGroup.rotation.set(-pitch, angle, roll, 'YXZ');
+
+        // Dynamic Camera - Follows loosely and looks slightly ahead
+        let camOffsetZ = carZ - Math.cos(angle) * 15;
+        let camOffsetX = carX - Math.sin(angle) * 15;
+        let camHeight = centerHeight + 6 + (speed * 2); // Camera pulls back/up slightly at speed
+
+        camera.position.lerp(new THREE.Vector3(camOffsetX, camHeight, camOffsetZ), 0.1);
+        camera.lookAt(
+            carX + Math.sin(angle) * 10, 
+            centerHeight + 2, 
+            carZ + Math.cos(angle) * 10
+        );
+
+        // Off-road slowdown
+        let road = getRoadCenter(carZ);
+        if (Math.abs(carX - road.x) > ROAD_WIDTH + 2) {
+            speed *= 0.96; // Grass friction
         }
 
-        if (speed.e < 0n && speed.m < 1) speed = BF.create(0); 
+        // World Generation Updates
+        updateTerrain(carX, carZ);
+        updateTrees(carX, carZ);
 
-        // Steering
-        if (speed.m > 0) {
-            let turnRate = 0.04;
-            if (left) carAngle += turnRate;
-            if (right) carAngle -= turnRate;
-            car.rotation.y = carAngle;
-        }
-
-        // MATH UPDATES
-        totalDist = totalDist.add(speed);
-        
-        let vxTrue = speed.mul(-Math.sin(carAngle));
-        let vzTrue = speed.mul(-Math.cos(carAngle));
-        worldX = worldX.add(vxTrue);
-        worldZ = worldZ.add(vzTrue);
-
-        // Visual updates
-        let renderSpd = speed.getVisualValue();
-        localX += renderSpd * -Math.sin(carAngle);
-        localZ += renderSpd * -Math.cos(carAngle);
-
-        let cxDiff = Math.floor(localX / CHUNK_SIZE);
-        let czDiff = Math.floor(localZ / CHUNK_SIZE);
-        chunkX += cxDiff;
-        chunkZ += czDiff;
-        localX -= cxDiff * CHUNK_SIZE;
-        localZ -= czDiff * CHUNK_SIZE;
-
-        // REALITY WARPING VISUAL EFFECTS
-        if (speed.e > 3n) {
-            let eNum = speed.e > 1000n ? 1000 : Number(speed.e);
-            camera.fov = 75 + Math.min(85, eNum * 0.5); 
-            camera.updateProjectionMatrix();
-
-            let hue = (Date.now() % 2000) / 2000;
-            scene.background.setHSL(hue, 1, 0.1);
-            scene.fog.color.setHSL(hue, 1, 0.1);
-            groundMat.color.setHSL((hue + 0.5) % 1, 1, 0.5);
-            
-            car.position.x = (Math.random() - 0.5) * Math.min(2, eNum * 0.1);
-        } else {
-            camera.fov = 75;
-            camera.updateProjectionMatrix();
-            scene.background.setHex(0x111122);
-            scene.fog.color.setHex(0x111122);
-            groundMat.color.setHex(0x00ff88);
-            car.position.x = 0;
-        }
-
-        updateTreadmill();
-
-        // UPDATE UI
-        document.getElementById('speedDisplay').innerText = speed.format() + " km/h";
-        document.getElementById('distDisplay').innerText = totalDist.format() + " m";
-        document.getElementById('coordDisplay').innerText = `${worldX.format()}, ${worldZ.format()}`;
+        // Update UI
+        let displaySpeed = Math.abs(speed * 120); // Fake km/h conversion
+        document.getElementById('speedDisplay').innerText = Math.floor(displaySpeed);
 
         renderer.render(scene, camera);
     }
 
+    // Handle Window Resize
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
